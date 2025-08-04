@@ -11,13 +11,13 @@ envp                dq 0
 startChar           db "my-bash@",0x20 
 locCmd              db "/usr/bin",0
 cmdNotFoundErr      db "Command Not Found😞",0xa   ;13 bytes
-
+isAllCmdP           db 0                          ; boolean to know if /usr/content has been loaded
 
 
 
     section .bss
 usrContent             resq 131072   ;reserving 1mb space for content of usr directory
-cmdOutput              resq 131072    ;1mb space for output    
+cmdOutput              resq 2621440    ;20mb space for output    
 allUserInput           resb 1024
 opt                    resb 100
 cmdLength              resb 1  
@@ -38,7 +38,7 @@ singleInput            resb 1
 
 
 _start:
-lea rax ,[cmdOutput]
+lea rax,[cmdOutput]
 call clearData               
 mov word[bytTracker],0
 mov rax,1
@@ -46,6 +46,10 @@ mov rdi,1
 lea rsi,[startChar]
 mov rdx,9
 syscall; print @ on the screen 
+movzx rax,byte[isAllCmdP]
+cmp rax,0
+jnz getUserInput
+call getAllCmd
 
 getUserInput:
 mov rax,0
@@ -103,31 +107,14 @@ checkCmd:
 sub r8,rcx
 mov byte[cmdLength],r8b
 lea rax,[allUserInput]
-call clearData
-        .openUsrDir:
-        mov rax,2
-        lea rdi,[locCmd]
-        mov rsi,0x10000
-        syscall
-        mov word[usrFd],ax; open and save fd of usr dir
-
-        .getUsrContent:
-        movzx rbx,word[usrFd]
-        mov rax,217
-        mov rdi,rbx
-        lea rsi,[usrContent]
-        mov rdx,1048576
-        syscall
-        xor r10,r10  ;will contain bytes read from usrContent during cmd search
-        
-        
-
+call clearData              
+xor r10,r10  ;will contain bytes read from usrContent during cmd search
         .checkCItemIfValid:
         cmp r10,1048576
-        jge .closeUsrDir
+        jge printCmdNotFound
         mov al,byte[usrContent+r10+19]
         cmp al,0
-        jz .closeUsrDir
+        jz printCmdNotFound
         xor rcx,rcx
         xor r11,r11
         mov r11,r10
@@ -148,28 +135,16 @@ call clearData
         lea rsi,[cmd]
         lea rdi,[currentCmdC]
         repe cmpsb
-        mov rax,0  
-        mov rbx,1            
-        cmovz r13,rbx
-        cmovnz r13,rax   ;using r13 to track if cmd was found or not bolean value
-        jz .closeUsrDir
+        jz creatFullPathToCmd
 
         .updateByteRead:
         movzx rax,word[usrContent+r10+16]
         add r10,rax
         jmp .checkCItemIfValid
 
-        .closeUsrDir:
-        movzx rcx,word[usrFd]
-        mov rax,3
-        mov rdi,rcx
-        syscall  ; closing usr dir
+       
 
-cmp r13,0   ;checking if cmd was found or not
-jnz creatFullPathToCmd
 ;check if cmd exist
-
-
 
 printCmdNotFound:
 mov rax,1
@@ -289,12 +264,39 @@ syscall
 
 
 
+getAllCmd:
+        .openUsrDir:
+        mov rax,2
+        lea rdi,[locCmd]
+        mov rsi,0x10000
+        syscall
+        mov word[usrFd],ax; open and save fd of usr dir
+
+        .getUsrContent:
+        movzx rbx,word[usrFd]
+        mov rax,217
+        mov rdi,rbx
+        lea rsi,[usrContent]
+        mov rdx,1048576
+        syscall
+
+         .closeUsrDir:
+        movzx rcx,word[usrFd]
+        mov rax,3
+        mov rdi,rcx
+        syscall  ; closing usr dir
+
+mov byte[isAllCmdP],1        
+ret       
+
+
 clearData:
 mov rcx,-1
+xor r13,r13
     .start:
     inc rcx
-    mov al,byte[rax+rcx]
-    cmp al,0
+    mov r13b,byte[rax+rcx]
+    cmp r13b,0
     mov byte[rax+rcx],0
     jnz .start
 ret  ; this procedure takes argument passed in rax
