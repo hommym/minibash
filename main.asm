@@ -12,6 +12,7 @@ startChar           db "my-bash@",0x20
 locCmd              db "/usr/bin",0
 cmdNotFoundErr      db "Command Not Found😞",0xa   ;13 bytes
 isAllCmdP           db 0                          ; boolean to know if /usr/content has been loaded
+isCWDSet            db 0                          ;boolean to see if cwd is set
 
 
 
@@ -28,7 +29,8 @@ fullPath               resb 30
 pipFd                  resd 2        ;pipfd[0]= read pipfd[1]=write
 usrFd                  resw 1
 singleInput            resb 1
-
+cWkDir                 resb 1024
+oldCWkDir              resb 1024
 
 
 
@@ -50,6 +52,13 @@ movzx rax,byte[isAllCmdP]
 cmp rax,0
 jnz getUserInput
 call getAllCmd
+movzx rax,byte[isCWDSet]
+cmp rax,0
+jnz getUserInput
+call getCwd
+
+
+
 
 getUserInput:
 mov rax,0
@@ -290,6 +299,17 @@ mov byte[isAllCmdP],1
 ret       
 
 
+
+getCwd:
+mov rax,79
+lea rdi,[cWkDir]
+mov rsi,512
+syscall
+mov byte[isCWDSet],1
+ret
+
+
+
 clearData:
 mov rcx,-1
 xor r13,r13
@@ -300,4 +320,8 @@ xor r13,r13
     mov byte[rax+rcx],0
     jnz .start
 ret  ; this procedure takes argument passed in rax
+
+
+
+
 
