@@ -10,9 +10,12 @@ bytTracker          dw 0
 envp                dq 0 
 startChar           db "my-bash@",0x20 
 locCmd              db "/usr/bin",0
-cmdNotFoundErr      db "Command Not Found😞",0xa   ;13 bytes
+cmdNotFoundErr      db "Command Not Found 😞",0xa,0   ;13 bytes
+cdCmdErr            db "mini-bash: cd: No such file or folder 😞",0xa,0
 isAllCmdP           db 0                          ; boolean to know if /usr/content has been loaded
 isCWDSet            db 0                          ;boolean to see if cwd is set
+cdCmd               db "cd",0
+lsCmd               db  "ls",0
 
 
 
@@ -57,9 +60,6 @@ cmp rax,0
 jnz getUserInput
 call getCwd
 
-
-
-
 getUserInput:
 mov rax,0
 mov rdi,0
@@ -74,7 +74,6 @@ cmp bl,0xa
 jz printInput
 mov byte[allUserInput+rax],bl
 inc word[bytTracker]
-
 
 printInput:
 mov rax,1
@@ -101,7 +100,6 @@ processInput:
         cmovz rbx,rdx
         mov byte[cmd+r8],bl
         jnz .getCmd
-       
 
         .getOpt:
         inc r8
@@ -111,10 +109,17 @@ processInput:
         mov byte[opt+rcx],bl
         jnz .getOpt        
 ;break user input into cmd and options
-
-checkCmd:
 sub r8,rcx
 mov byte[cmdLength],r8b
+lea rsi,[cdCmd]
+lea rdi,[cmd]
+mov rcx,3
+call compStringVal
+cmp rax,0
+jnz processCdCmd
+;check if the cmd is cd 
+
+checkCmd:
 lea rax,[allUserInput]
 call clearData              
 xor r10,r10  ;will contain bytes read from usrContent during cmd search
@@ -150,20 +155,19 @@ xor r10,r10  ;will contain bytes read from usrContent during cmd search
         movzx rax,word[usrContent+r10+16]
         add r10,rax
         jmp .checkCItemIfValid
-
-       
-
 ;check if cmd exist
 
 printCmdNotFound:
-mov rax,1
-mov rdi,1
-lea rsi,[cmdNotFoundErr]
-mov rdx,22
-syscall
+lea r14,[cmdNotFoundErr]
+mov r15,23
+call print
 jmp _start
 
-
+printCdErr:
+lea r14,[cdCmdErr]
+mov r15,43
+call print
+jmp _start
 
 creatFullPathToCmd:
 mov r8,-1
@@ -255,14 +259,23 @@ mov al,byte[cmdOutput+rbx]
 mov byte[singleInput],al
 cmp al,0
 jz _start
-mov rax,1
-mov rdi,1
-lea rsi,[singleInput]
-mov rdx,1
-syscall  ;printing output char by char
+lea r14,[singleInput]
+mov r15,1
+call print;printing output char by char
 inc rbx
 jmp printOutPutFromChild
 
+processCdCmd:
+mov rax,80
+lea rdi,[opt]
+syscall; chdir syscall
+cmp rax,0
+jl printCdErr
+mov rcx,1
+lea rax,[cWkDir]
+call clearData
+call getCwd
+jmp _start
 
 
 end:
@@ -270,8 +283,6 @@ xor rcx,rcx
 mov rax,60
 mov rdi,0
 syscall
-
-
 
 getAllCmd:
         .openUsrDir:
@@ -298,8 +309,6 @@ getAllCmd:
 mov byte[isAllCmdP],1        
 ret       
 
-
-
 getCwd:
 mov rax,79
 lea rdi,[cWkDir]
@@ -321,6 +330,14 @@ cmovnz rax,r12
 ; if rax is 0 is not equal and if is 1 is true
 ret
 
+print:
+mov rax,1
+mov rdi,1
+lea rsi,[r14]
+mov rdx,r15
+syscall
+ret;load buffer address into r14 and num of bytes to print into r15
+
 clearData:
 mov rcx,-1
 xor r13,r13
@@ -334,7 +351,7 @@ ret  ; this procedure takes argument passed in rax
 
 
 
-;write procedure for string comparison
-;component for processing cd cmd 
-;component for handling 0 options for ls 
+
+;print cwd on screen
+;component for handling 0 options for ls and other cmds 
 
