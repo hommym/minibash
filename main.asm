@@ -139,12 +139,12 @@ xor r10,r10  ;will contain bytes read from usrContent during cmd search
         jmp .getCurrentCmdInDirent
 
         .cmpCmds:
-        cld
         movzx rcx,byte[cmdLength]
         lea rsi,[cmd]
         lea rdi,[currentCmdC]
-        repe cmpsb
-        jz creatFullPathToCmd
+        call compStringVal
+        cmp rax,0
+        jnz creatFullPathToCmd
 
         .updateByteRead:
         movzx rax,word[usrContent+r10+16]
@@ -309,6 +309,17 @@ mov byte[isCWDSet],1
 ret
 
 
+compStringVal:
+cld
+repe cmpsb
+mov r12,0
+mov r13,1
+cmovz rax,r13
+cmovnz rax,r12
+; pass start adresses of string into rsi and rdi
+; pass len of the main string you are comparing in rcx
+; if rax is 0 is not equal and if is 1 is true
+ret
 
 clearData:
 mov rcx,-1
@@ -323,5 +334,7 @@ ret  ; this procedure takes argument passed in rax
 
 
 
-
+;write procedure for string comparison
+;component for processing cd cmd 
+;component for handling 0 options for ls 
 
