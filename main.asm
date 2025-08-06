@@ -51,7 +51,11 @@ call getCwd
 
 resetMem:
 lea rax,[cmdOutput]
-call clearData               
+call clearData       
+lea rax,[cmd]
+call clearData
+lea rax,[opt]
+call clearData        
 mov word[bytTracker],0
 
 
@@ -378,6 +382,6 @@ ret  ; this procedure takes argument passed in rax
 
 
 
-;print cwd on screen
+
 ;component for handling 0 options for ls and other cmds 
 
