@@ -8,11 +8,12 @@
     section .data
 bytTracker          dw 0     
 envp                dq 0 
-startChar           db "my-bash@",0x20 
+symbol              db "@",0x20,0
+startChar           db "my-bash:",0 
 locCmd              db "/usr/bin",0
 cmdNotFoundErr      db "Command Not Found 😞",0xa,0   ;13 bytes
 cdCmdErr            db "mini-bash: cd: No such file or folder 😞",0xa,0
-isAllCmdP           db 0                          ; boolean to know if /usr/content has been loaded
+isAllCmdP           db 0                          ;boolean to know if /usr/content has been loaded
 isCWDSet            db 0                          ;boolean to see if cwd is set
 cdCmd               db "cd",0
 lsCmd               db  "ls",0
@@ -43,22 +44,36 @@ oldCWkDir              resb 1024
 
 
 _start:
+movzx rax,byte[isCWDSet]
+cmp rax,0
+jnz resetMem
+call getCwd
+
+resetMem:
 lea rax,[cmdOutput]
 call clearData               
 mov word[bytTracker],0
-mov rax,1
-mov rdi,1
-lea rsi,[startChar]
-mov rdx,9
-syscall; print @ on the screen 
+
+
+printDefs:
+lea r14,[startChar]
+mov r15,8
+call print  ;print my-bash: on the screen 
+lea rax,[cWkDir]
+call countChar
+lea r14,[cWkDir]
+mov r15,rax
+call print; print cwd
+lea r14,[symbol]
+mov r15,2
+call print  ;print @ symbol
+
+getBinContent:
 movzx rax,byte[isAllCmdP]
 cmp rax,0
 jnz getUserInput
 call getAllCmd
-movzx rax,byte[isCWDSet]
-cmp rax,0
-jnz getUserInput
-call getCwd
+
 
 getUserInput:
 mov rax,0
@@ -337,6 +352,17 @@ lea rsi,[r14]
 mov rdx,r15
 syscall
 ret;load buffer address into r14 and num of bytes to print into r15
+
+
+
+countChar:
+mov rcx,-1
+    .count:
+    inc rcx
+    movzx rdx,byte[rax+rcx]
+    cmp rdx,0.
+    jnz .count    
+ret ;load buffer start address to rax
 
 clearData:
 mov rcx,-1
