@@ -16,7 +16,10 @@ cdCmdErr            db "mini-bash: cd: No such file or folder 😞",0xa,0
 isAllCmdP           db 0                          ;boolean to know if /usr/content has been loaded
 isCWDSet            db 0                          ;boolean to see if cwd is set
 cdCmd               db "cd",0
-lsCmd               db  "ls",0
+clearCmd            db "clear",0
+clearCode           db 27, '[', 'H', 27, '[', '2', 'J' ; char code for clearing console
+cClen                equ $ - clearCode
+
 
 
 
@@ -101,6 +104,10 @@ lea rsi,[singleInput]
 mov rdx,1
 ; syscall
 jnz getUserInput
+movzx rax,byte[allUserInput]
+cmp rax,0
+jz _start
+;check if user typed 
 xor rbx,rbx
 mov r8,-1
 mov rcx,-1
@@ -108,13 +115,15 @@ mov rdx,0
 movzx rax ,byte[bytTracker]        
 mov byte[allUserInput+rax],0; null terminating allUserInput
 
+
+
 processInput:
         .getCmd:
         inc r8
         mov bl,byte[allUserInput+r8]
         movzx rax,word[bytTracker]
         cmp rax,r8
-        jz  checkCmd
+        jz  setOptIfIsNull
         cmp bl,0x20
         cmovz rbx,rdx
         mov byte[cmd+r8],bl
@@ -128,8 +137,20 @@ processInput:
         mov byte[opt+rcx],bl
         jnz .getOpt        
 ;break user input into cmd and options
+
+
+setOptIfIsNull:
 sub r8,rcx
 mov byte[cmdLength],r8b
+movzx rax, byte[opt]
+cmp rax,0
+jnz checkCdCmd
+lea rsi,[cWkDir]
+lea rdi,[opt]
+call copyString
+;check if opt is empty and copy cwd to opt
+
+checkCdCmd:
 lea rsi,[cdCmd]
 lea rdi,[cmd]
 mov rcx,3
@@ -137,6 +158,19 @@ call compStringVal
 cmp rax,0
 jnz processCdCmd
 ;check if the cmd is cd 
+
+chekClearCmd:
+lea rsi,[clearCmd]
+lea rdi,[cmd]
+mov rcx,6
+call compStringVal
+cmp rax,0
+jz checkCmd
+lea r14,[clearCode]
+mov r15,cClen
+call print
+jmp _start
+
 
 checkCmd:
 lea rax,[allUserInput]
@@ -348,6 +382,17 @@ cmovnz rax,r12
 ; pass len of the main string you are comparing in rcx
 ; if rax is 0 is not equal and if is 1 is true
 ret
+
+copyString:
+mov rcx,-1
+    .copy:
+    inc rcx
+    movzx rax,byte[rsi+rcx]
+    mov byte[rdi+rcx],al
+    cmp rax,0
+    jnz .copy
+ret
+;rsi source adress and rdi is destination address
 
 print:
 mov rax,1
