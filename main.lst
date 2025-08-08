@@ -61,11 +61,11 @@
     61                                 
     62                                 resetMem:
     63 00000014 488D0425[00000000]     lea rax,[cmdOutput]
-    64 0000001C E840050000             call clearData
+    64 0000001C E83D050000             call clearData
     65 00000021 488D0425[00000000]     lea rax,[cmd]
-    66 00000029 E833050000             call clearData
+    66 00000029 E830050000             call clearData
     67 0000002E 488D0425[00000000]     lea rax,[opt]
-    68 00000036 E826050000             call clearData
+    68 00000036 E823050000             call clearData
     69 0000003B 66C70425[00000000]-    mov word[bytTracker],0
     70 0000003B 0000               
     71                                 
@@ -183,7 +183,7 @@
    183                                 
    184                                 checkCmd:
    185 0000020D 488D0425[00000000]     lea rax,[allUserInput]
-   186 00000215 E847030000             call clearData
+   186 00000215 E844030000             call clearData
    187 0000021A 4D31D2                 xor r10,r10
    188                                  .checkCItemIfValid:
    189 0000021D 4981FA00001000          cmp r10,1048576
@@ -338,7 +338,7 @@
    338 00000449 0F8C4CFEFFFF           jl printCdErr
    339 0000044F 48C7C101000000         mov rcx,1
    340 00000456 488D0425[00000000]     lea rax,[cWkDir]
-   341 0000045E E8FE000000             call clearData
+   341 0000045E E8FB000000             call clearData
    342 00000463 E875000000             call getCwd
    343 00000468 E98EFBFFFF             jmp _start
    344                                 
@@ -421,20 +421,20 @@
    421                                  .count:
    422 00000554 48FFC1                  inc rcx
    423 00000557 480FB61408              movzx rdx,byte[rax+rcx]
-   424 0000055C 4881FA00000000          cmp rdx,0.
-   425 00000563 75ED                    jnz .count
-   426 00000565 C3                     ret
+   424 0000055C 4883FA00                cmp rdx,0
+   425 00000560 75F0                    jnz .count
+   426 00000562 C3                     ret
    427                                 
    428                                 clearData:
-   429 00000566 48C7C1FFFFFFFF         mov rcx,-1
-   430 0000056D 4D31ED                 xor r13,r13
+   429 00000563 48C7C1FFFFFFFF         mov rcx,-1
+   430 0000056A 4D31ED                 xor r13,r13
    431                                  .start:
-   432 00000570 48FFC1                  inc rcx
-   433 00000573 448A2C08                mov r13b,byte[rax+rcx]
-   434 00000577 4180FD00                cmp r13b,0
-   435 0000057B C6040800                mov byte[rax+rcx],0
-   436 0000057F 75ED                    jnz .start
-   437 00000581 C3                     ret
+   432 0000056D 48FFC1                  inc rcx
+   433 00000570 448A2C08                mov r13b,byte[rax+rcx]
+   434 00000574 4180FD00                cmp r13b,0
+   435 00000578 C6040800                mov byte[rax+rcx],0
+   436 0000057C 75ED                    jnz .start
+   437 0000057E C3                     ret
    438                                 
    439                                 
    440                                 
