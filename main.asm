@@ -409,7 +409,7 @@ mov rcx,-1
     .count:
     inc rcx
     movzx rdx,byte[rax+rcx]
-    cmp rdx,0.
+    cmp rdx,0
     jnz .count    
 ret ;load buffer start address to rax
 
