@@ -29,7 +29,7 @@ cmdOutput              resq 2621440    ;20mb space for output
 allUserInput           resb 1024
 opt                    resb 100
 cmdLength              resb 1  
-addresOfExevArgs       resq 3
+addresOfExevArgs       resq 20
 cmd                    resb 30
 currentCmdC            resb 30
 fullPath               resb 30  
@@ -114,27 +114,29 @@ mov rcx,-1
 mov rdx,0
 movzx rax ,byte[bytTracker]        
 mov byte[allUserInput+rax],0; null terminating allUserInput
-
+movzx rax,word[bytTracker]
 
 
 processInput:
         .getCmd:
         inc r8
         mov bl,byte[allUserInput+r8]
-        movzx rax,word[bytTracker]
         cmp rax,r8
         jz  setOptIfIsNull
         cmp bl,0x20
         cmovz rbx,rdx
         mov byte[cmd+r8],bl
         jnz .getCmd
+        xor r15,r15
 
         .getOpt:
         inc r8
         inc rcx
         mov bl,byte[allUserInput+r8]
-        cmp bl,0
+        cmp bl,0x20
+        cmovz rbx,r15
         mov byte[opt+rcx],bl
+        cmp rax,r8
         jnz .getOpt        
 ;break user input into cmd and options
 
@@ -247,6 +249,31 @@ mov rcx,-1
                     jnz .addCmd
 ;if it exist create full path to cmd
 
+
+mov qword[addresOfExevArgs],cmd
+mov r8,8 ; using r8 to track where we are in addresOfExevArgs
+lea r10,[opt] ;using r10 to track where we are in otp
+
+            .getAddresOfOpt:
+            mov qword[addresOfExevArgs+r8],r10
+            add r8,8
+            mov rcx,-1
+
+            .contByte:
+            inc rcx
+            movzx rbx,byte[r10+rcx]
+            cmp rbx,0
+            jnz .contByte
+inc rcx            
+add r10,rcx
+cmp byte[r10],0
+jnz .getAddresOfOpt
+;dynamically saving cmd options start addresses in addresOfExevArgs
+add r8,8
+mov qword[addresOfExevArgs+r8],0
+
+
+
 createPip:
 mov rax,22
 lea rdi,[pipFd]
@@ -275,9 +302,8 @@ mov rax,33
 mov rdi,rbx
 mov rsi,1
 syscall  ; dup write fd for the pip 
-mov qword[addresOfExevArgs],fullPath
-mov qword[addresOfExevArgs+8],opt
-mov qword[addresOfExevArgs+16],0
+
+
 mov rax ,59
 lea rdi,[fullPath]
 lea rsi,[addresOfExevArgs]
@@ -301,7 +327,7 @@ mov ecx,dword[pipFd]
 mov rax,0
 mov rdi,rcx
 lea rsi,[cmdOutput]
-mov rdx,1048576
+mov rdx,20971520
 syscall
 xor rbx,rbx
 
@@ -428,5 +454,11 @@ ret  ; this procedure takes argument passed in rax
 
 
 
-;component for handling 0 options for ls and other cmds 
+;improve upon command parsing
+;man java does not work
+;sudo command does not work
+;add exit cmmand to end the terminal
+;caching previous entered commands 
+
+
 
