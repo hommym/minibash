@@ -19,6 +19,8 @@ cdCmd               db "cd",0
 clearCmd            db "clear",0
 clearCode           db 27, '[', 'H', 27, '[', '2', 'J' ; char code for clearing console
 cClen                equ $ - clearCode
+exitCmd             db "exit",0
+
 
 
 
@@ -167,11 +169,20 @@ lea rdi,[cmd]
 mov rcx,6
 call compStringVal
 cmp rax,0
-jz checkCmd
+jz checkExitCmd
 lea r14,[clearCode]
 mov r15,cClen
 call print
 jmp _start
+
+checkExitCmd:
+lea rsi,[exitCmd]
+lea rdi,[cmd]
+mov rcx,5
+call compStringVal
+cmp rax,0
+jnz end
+
 
 
 checkCmd:
@@ -453,11 +464,7 @@ ret  ; this procedure takes argument passed in rax
 
 
 
-
-;improve upon command parsing
-;man java does not work
-;sudo command does not work
-;add exit cmmand to end the terminal
+;"man java" does not work
 ;caching previous entered commands 
 
 
