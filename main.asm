@@ -7,7 +7,6 @@
 
     section .data
 bytTracker          dw 0     
-envp                dq 0 
 symbol              db "@",0x20,0
 startChar           db "my-bash:",0 
 locCmd              db "/usr/bin",0
@@ -17,9 +16,9 @@ isAllCmdP           db 0                          ;boolean to know if /usr/conte
 isCWDSet            db 0                          ;boolean to see if cwd is set
 cdCmd               db "cd",0
 clearCmd            db "clear",0
-clearCode           db 27, '[', 'H', 27, '[', '2', 'J' ; char code for clearing console
-cClen                equ $ - clearCode
+clearOpt            db "-T xterm-256color",0
 exitCmd             db "exit",0
+isEnvP              db 0
 
 
 
@@ -27,9 +26,10 @@ exitCmd             db "exit",0
 
     section .bss
 usrContent             resq 131072   ;reserving 1mb space for content of usr directory
-cmdOutput              resq 2621440    ;20mb space for output    
+cmdOutput              resq 2621440    ;20mb space for output   
+envp                   resq 100 
 allUserInput           resb 1024
-opt                    resb 100
+opt                    resb 500
 cmdLength              resb 1  
 addresOfExevArgs       resq 20
 cmd                    resb 30
@@ -55,13 +55,36 @@ jnz resetMem
 call getCwd
 
 resetMem:
+mov rbx,20971520
 lea rax,[cmdOutput]
-call clearData       
+call clearNData       
 lea rax,[cmd]
 call clearData
 lea rax,[opt]
-call clearData        
+mov rbx,500
+call clearNData      
 mov word[bytTracker],0
+cmp byte[isEnvP],0
+jnz printDefs
+
+getEnvP:
+mov byte[isEnvP],1
+mov rax,-1
+mov rcx,-1
+
+        .getStartAdresOfEnvP:
+        inc rax
+        mov rdx,qword[rsp+rax*8]
+        cmp rdx,0
+        jnz .getStartAdresOfEnvP
+
+        .storeEnvP:
+        inc rax
+        inc rcx
+        mov rdx,qword[rsp+rax*8]
+        mov qword[envp+rcx*8],rdx
+        cmp rdx,0
+        jnz .storeEnvP
 
 
 printDefs:
@@ -170,10 +193,12 @@ mov rcx,6
 call compStringVal
 cmp rax,0
 jz checkExitCmd
-lea r14,[clearCode]
-mov r15,cClen
-call print
-jmp _start
+lea rax,[opt]
+call clearData    ; clearing cwd set as opt 
+lea rsi,[clearOpt]
+lea rdi,[opt]
+call copyString
+jmp creatFullPathToCmd
 
 checkExitCmd:
 lea rsi,[exitCmd]
@@ -280,7 +305,6 @@ add r10,rcx
 cmp byte[r10],0
 jnz .getAddresOfOpt
 ;dynamically saving cmd options start addresses in addresOfExevArgs
-add r8,8
 mov qword[addresOfExevArgs+r8],0
 
 
@@ -421,11 +445,15 @@ cmovnz rax,r12
 ret
 
 copyString:
+mov r15,0
 mov rcx,-1
     .copy:
     inc rcx
     movzx rax,byte[rsi+rcx]
+    cmp al,0x20
+    cmovz rax,r15
     mov byte[rdi+rcx],al
+    jz .copy
     cmp rax,0
     jnz .copy
 ret
@@ -461,7 +489,16 @@ xor r13,r13
     jnz .start
 ret  ; this procedure takes argument passed in rax
 
-
+clearNData:
+mov rcx,-1
+xor r13,r13
+    .start:
+    inc rcx
+    mov r13b,byte[rax+rcx]
+    cmp rbx,rcx
+    mov byte[rax+rcx],0
+    jnz .start
+ret  ; this procedure takes start address of section to be in rax and number of bytes to be clear in rbx
 
 
 ;"man java" does not work

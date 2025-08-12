@@ -8,25 +8,25 @@
      8                                 
      9                                 [section .data]
     10 00000000 0000                   bytTracker dw 0
-    11 00000002 0000000000000000       envp dq 0
-    12 0000000A 402000                 symbol db "@",0x20,0
-    13 0000000D 6D792D626173683A00     startChar db "my-bash:",0
-    14 00000016 2F7573722F62696E00     locCmd db "/usr/bin",0
-    15 0000001F 436F6D6D616E64204E-    cmdNotFoundErr db "Command Not Found 😞",0xa,0
-    16 0000001F 6F7420466F756E6420-
-    17 0000001F F09F989E0A00       
-    18 00000037 6D696E692D62617368-    cdCmdErr db "mini-bash: cd: No such file or folder 😞",0xa,0
-    19 00000037 3A2063643A204E6F20-
-    20 00000037 737563682066696C65-
-    21 00000037 206F7220666F6C6465-
-    22 00000037 7220F09F989E0A00   
-    23 00000063 00                     isAllCmdP db 0
-    24 00000064 00                     isCWDSet db 0
-    25 00000065 636400                 cdCmd db "cd",0
-    26 00000068 636C65617200           clearCmd db "clear",0
-    27 0000006E 1B5B481B5B324A         clearCode db 27, '[', 'H', 27, '[', '2', 'J'
-    28                                 cClen equ $ - clearCode
-    29 00000075 6578697400             exitCmd db "exit",0
+    11 00000002 402000                 symbol db "@",0x20,0
+    12 00000005 6D792D626173683A00     startChar db "my-bash:",0
+    13 0000000E 2F7573722F62696E00     locCmd db "/usr/bin",0
+    14 00000017 436F6D6D616E64204E-    cmdNotFoundErr db "Command Not Found 😞",0xa,0
+    15 00000017 6F7420466F756E6420-
+    16 00000017 F09F989E0A00       
+    17 0000002F 6D696E692D62617368-    cdCmdErr db "mini-bash: cd: No such file or folder 😞",0xa,0
+    18 0000002F 3A2063643A204E6F20-
+    19 0000002F 737563682066696C65-
+    20 0000002F 206F7220666F6C6465-
+    21 0000002F 7220F09F989E0A00   
+    22 0000005B 00                     isAllCmdP db 0
+    23 0000005C 00                     isCWDSet db 0
+    24 0000005D 636400                 cdCmd db "cd",0
+    25 00000060 636C65617200           clearCmd db "clear",0
+    26 00000066 2D5420787465726D2D-    clearOpt db "-T xterm-256color",0
+    27 00000066 323536636F6C6F7200 
+    28 00000078 6578697400             exitCmd db "exit",0
+    29 0000007D 00                     isEnvP db 0
     30                                 
     31                                 
     32                                 
@@ -35,448 +35,485 @@
     35                                 [section .bss]
     36 00000000 <gap>                  usrContent resq 131072
     37 00100000 <gap>                  cmdOutput resq 2621440
-    38 01500000 <gap>                  allUserInput resb 1024
-    39 01500400 <gap>                  opt resb 100
-    40 01500464 <gap>                  cmdLength resb 1
-    41 01500465 <gap>                  addresOfExevArgs resq 20
-    42 01500505 <gap>                  cmd resb 30
-    43 01500523 <gap>                  currentCmdC resb 30
-    44 01500541 <gap>                  fullPath resb 30
-    45 0150055F <gap>                  pipFd resd 2
-    46 01500567 <gap>                  usrFd resw 1
-    47 01500569 <gap>                  singleInput resb 1
-    48 0150056A <gap>                  cWkDir resb 1024
-    49 0150096A <gap>                  oldCWkDir resb 1024
-    50                                 
+    38 01500000 <gap>                  envp resq 100
+    39 01500320 <gap>                  allUserInput resb 1024
+    40 01500720 <gap>                  opt resb 500
+    41 01500914 <gap>                  cmdLength resb 1
+    42 01500915 <gap>                  addresOfExevArgs resq 20
+    43 015009B5 <gap>                  cmd resb 30
+    44 015009D3 <gap>                  currentCmdC resb 30
+    45 015009F1 <gap>                  fullPath resb 30
+    46 01500A0F <gap>                  pipFd resd 2
+    47 01500A17 <gap>                  usrFd resw 1
+    48 01500A19 <gap>                  singleInput resb 1
+    49 01500A1A <gap>                  cWkDir resb 1024
+    50 01500E1A <gap>                  oldCWkDir resb 1024
     51                                 
     52                                 
-    53                                 [section .text]
-    54                                 [global _start]
-    55                                 
+    53                                 
+    54                                 [section .text]
+    55                                 [global _start]
     56                                 
     57                                 
-    58                                 _start:
-    59 00000000 480FB60425[00000000]     movzx rax,byte[isCWDSet]
-    60 00000009 4883F800               cmp rax,0
-    61 0000000D 7503                   jnz resetMem
-    62 0000000F E82B050000             call getCwd
-    63                                 
-    64                                 resetMem:
-    65 00000014 488D0425[00000000]     lea rax,[cmdOutput]
-    66 0000001C E89F050000             call clearData
-    67 00000021 488D0425[00000000]     lea rax,[cmd]
-    68 00000029 E892050000             call clearData
-    69 0000002E 488D0425[00000000]     lea rax,[opt]
-    70 00000036 E885050000             call clearData
-    71 0000003B 66C70425[00000000]-    mov word[bytTracker],0
-    72 0000003B 0000               
-    73                                 
-    74                                 
-    75                                 printDefs:
-    76 00000045 4C8D3425[00000000]     lea r14,[startChar]
-    77 0000004D 49C7C708000000         mov r15,8
-    78 00000054 E83A050000             call print
-    79 00000059 488D0425[00000000]     lea rax,[cWkDir]
-    80 00000061 E844050000             call countChar
-    81 00000066 4C8D3425[00000000]     lea r14,[cWkDir]
-    82 0000006E 4989C7                 mov r15,rax
-    83 00000071 E81D050000             call print
-    84 00000076 4C8D3425[00000000]     lea r14,[symbol]
-    85 0000007E 49C7C702000000         mov r15,2
-    86 00000085 E809050000             call print
-    87                                 
-    88                                 getBinContent:
-    89 0000008A 480FB60425[00000000]     movzx rax,byte[isAllCmdP]
-    90 00000093 4883F800               cmp rax,0
-    91 00000097 7503                   jnz getUserInput
-    92 00000099 E83F040000             call getAllCmd
-    93                                 
-    94                                 
-    95                                 getUserInput:
-    96 0000009E 48C7C000000000         mov rax,0
-    97 000000A5 48C7C700000000         mov rdi,0
-    98 000000AC 488D3425[00000000]     lea rsi,[singleInput]
-    99 000000B4 48C7C201000000         mov rdx,1
-   100 000000BB 0F05                   syscall
-   101                                 
-   102                                 saveInput:
-   103 000000BD 480FB70425[00000000]     movzx rax,word[bytTracker]
-   104 000000C6 8A1C25[00000000]       mov bl,byte[singleInput]
-   105 000000CD 80FB0A                 cmp bl,0xa
-   106 000000D0 740C                   jz printInput
-   107 000000D2 8898[00000000]         mov byte[allUserInput+rax],bl
-   108 000000D8 66FF0425[00000000]     inc word[bytTracker]
-   109                                 
-   110                                 printInput:
-   111 000000E0 48C7C001000000         mov rax,1
-   112 000000E7 48C7C701000000         mov rdi,1
-   113 000000EE 488D3425[00000000]     lea rsi,[singleInput]
-   114 000000F6 48C7C201000000         mov rdx,1
-   115                                 
-   116 000000FD 759D                   jnz getUserInput
-   117 000000FF 480FB60425[00000000]     movzx rax,byte[allUserInput]
-   118 00000108 4883F800               cmp rax,0
-   119 0000010C 0F84E8FEFFFF           jz _start
-   120                                 
-   121 00000112 4831DB                 xor rbx,rbx
-   122 00000115 49C7C0FFFFFFFF         mov r8,-1
-   123 0000011C 48C7C1FFFFFFFF         mov rcx,-1
-   124 00000123 48C7C200000000         mov rdx,0
-   125 0000012A 480FB60425[00000000]     movzx rax ,byte[bytTracker]
-   126 00000133 C680[00000000]00       mov byte[allUserInput+rax],0
-   127 0000013A 480FB70425[00000000]     movzx rax,word[bytTracker]
-   128                                 
-   129                                 
-   130                                 processInput:
-   131                                  .getCmd:
-   132 00000143 49FFC0                  inc r8
-   133 00000146 418A98[00000000]        mov bl,byte[allUserInput+r8]
-   134 0000014D 4C39C0                  cmp rax,r8
-   135 00000150 7430                    jz setOptIfIsNull
-   136 00000152 80FB20                  cmp bl,0x20
-   137 00000155 480F44DA                cmovz rbx,rdx
-   138 00000159 418898[00000000]        mov byte[cmd+r8],bl
-   139 00000160 75DF                    jnz .getCmd
-   140 00000162 4D31FF                  xor r15,r15
-   141                                 
-   142                                  .getOpt:
-   143 00000165 49FFC0                  inc r8
-   144 00000168 48FFC1                  inc rcx
-   145 0000016B 418A98[00000000]        mov bl,byte[allUserInput+r8]
-   146 00000172 80FB20                  cmp bl,0x20
-   147 00000175 490F44DF                cmovz rbx,r15
-   148 00000179 8899[00000000]          mov byte[opt+rcx],bl
-   149 0000017F 4C39C0                  cmp rax,r8
-   150 00000182 75DF                    jnz .getOpt
-   151                                 
+    58                                 
+    59                                 _start:
+    60 00000000 480FB60425[00000000]     movzx rax,byte[isCWDSet]
+    61 00000009 4883F800               cmp rax,0
+    62 0000000D 7503                   jnz resetMem
+    63 0000000F E885050000             call getCwd
+    64                                 
+    65                                 resetMem:
+    66 00000014 48C7C300004001         mov rbx,20971520
+    67 0000001B 488D0425[00000000]     lea rax,[cmdOutput]
+    68 00000023 E81D060000             call clearNData
+    69 00000028 488D0425[00000000]     lea rax,[cmd]
+    70 00000030 E8F4050000             call clearData
+    71 00000035 488D0425[00000000]     lea rax,[opt]
+    72 0000003D 48C7C3F4010000         mov rbx,500
+    73 00000044 E8FC050000             call clearNData
+    74 00000049 66C70425[00000000]-    mov word[bytTracker],0
+    75 00000049 0000               
+    76 00000053 803C25[00000000]00     cmp byte[isEnvP],0
+    77 0000005B 7539                   jnz printDefs
+    78                                 
+    79                                 getEnvP:
+    80 0000005D C60425[00000000]01     mov byte[isEnvP],1
+    81 00000065 48C7C0FFFFFFFF         mov rax,-1
+    82 0000006C 48C7C1FFFFFFFF         mov rcx,-1
+    83                                 
+    84                                  .getStartAdresOfEnvP:
+    85 00000073 48FFC0                  inc rax
+    86 00000076 488B14C4                mov rdx,qword[rsp+rax*8]
+    87 0000007A 4883FA00                cmp rdx,0
+    88 0000007E 75F1                    jnz .getStartAdresOfEnvP
+    89                                 
+    90                                  .storeEnvP:
+    91 00000080 48FFC0                  inc rax
+    92 00000083 48FFC1                  inc rcx
+    93 00000086 488B14C4                mov rdx,qword[rsp+rax*8]
+    94 0000008A 488914CD[00000000]      mov qword[envp+rcx*8],rdx
+    95 00000092 4883FA00                cmp rdx,0
+    96 00000096 75E6                    jnz .storeEnvP
+    97                                 
+    98                                 
+    99                                 printDefs:
+   100 00000098 4C8D3425[00000000]     lea r14,[startChar]
+   101 000000A0 49C7C708000000         mov r15,8
+   102 000000A7 E850050000             call print
+   103 000000AC 488D0425[00000000]     lea rax,[cWkDir]
+   104 000000B4 E85A050000             call countChar
+   105 000000B9 4C8D3425[00000000]     lea r14,[cWkDir]
+   106 000000C1 4989C7                 mov r15,rax
+   107 000000C4 E833050000             call print
+   108 000000C9 4C8D3425[00000000]     lea r14,[symbol]
+   109 000000D1 49C7C702000000         mov r15,2
+   110 000000D8 E81F050000             call print
+   111                                 
+   112                                 getBinContent:
+   113 000000DD 480FB60425[00000000]     movzx rax,byte[isAllCmdP]
+   114 000000E6 4883F800               cmp rax,0
+   115 000000EA 7503                   jnz getUserInput
+   116 000000EC E846040000             call getAllCmd
+   117                                 
+   118                                 
+   119                                 getUserInput:
+   120 000000F1 48C7C000000000         mov rax,0
+   121 000000F8 48C7C700000000         mov rdi,0
+   122 000000FF 488D3425[00000000]     lea rsi,[singleInput]
+   123 00000107 48C7C201000000         mov rdx,1
+   124 0000010E 0F05                   syscall
+   125                                 
+   126                                 saveInput:
+   127 00000110 480FB70425[00000000]     movzx rax,word[bytTracker]
+   128 00000119 8A1C25[00000000]       mov bl,byte[singleInput]
+   129 00000120 80FB0A                 cmp bl,0xa
+   130 00000123 740C                   jz printInput
+   131 00000125 8898[00000000]         mov byte[allUserInput+rax],bl
+   132 0000012B 66FF0425[00000000]     inc word[bytTracker]
+   133                                 
+   134                                 printInput:
+   135 00000133 48C7C001000000         mov rax,1
+   136 0000013A 48C7C701000000         mov rdi,1
+   137 00000141 488D3425[00000000]     lea rsi,[singleInput]
+   138 00000149 48C7C201000000         mov rdx,1
+   139                                 
+   140 00000150 759D                   jnz getUserInput
+   141 00000152 480FB60425[00000000]     movzx rax,byte[allUserInput]
+   142 0000015B 4883F800               cmp rax,0
+   143 0000015F 0F8495FEFFFF           jz _start
+   144                                 
+   145 00000165 4831DB                 xor rbx,rbx
+   146 00000168 49C7C0FFFFFFFF         mov r8,-1
+   147 0000016F 48C7C1FFFFFFFF         mov rcx,-1
+   148 00000176 48C7C200000000         mov rdx,0
+   149 0000017D 480FB60425[00000000]     movzx rax ,byte[bytTracker]
+   150 00000186 C680[00000000]00       mov byte[allUserInput+rax],0
+   151 0000018D 480FB70425[00000000]     movzx rax,word[bytTracker]
    152                                 
    153                                 
-   154                                 setOptIfIsNull:
-   155 00000184 4929C8                 sub r8,rcx
-   156 00000187 44880425[00000000]     mov byte[cmdLength],r8b
-   157 0000018F 480FB60425[00000000]     movzx rax, byte[opt]
-   158 00000198 4883F800               cmp rax,0
-   159 0000019C 7513                   jnz checkCdCmd
-   160 0000019E 488D3425[00000000]     lea rsi,[cWkDir]
-   161 000001A6 488D3C25[00000000]     lea rdi,[opt]
-   162 000001AE E8C7030000             call copyString
-   163                                 
-   164                                 
-   165                                 checkCdCmd:
-   166 000001B3 488D3425[00000000]     lea rsi,[cdCmd]
-   167 000001BB 488D3C25[00000000]     lea rdi,[cmd]
-   168 000001C3 48C7C103000000         mov rcx,3
-   169 000001CA E891030000             call compStringVal
-   170 000001CF 4883F800               cmp rax,0
-   171 000001D3 0F85B7020000           jnz processCdCmd
-   172                                 
-   173                                 
-   174                                 chekClearCmd:
-   175 000001D9 488D3425[00000000]     lea rsi,[clearCmd]
-   176 000001E1 488D3C25[00000000]     lea rdi,[cmd]
-   177 000001E9 48C7C106000000         mov rcx,6
-   178 000001F0 E86B030000             call compStringVal
-   179 000001F5 4883F800               cmp rax,0
-   180 000001F9 741A                   jz checkExitCmd
-   181 000001FB 4C8D3425[00000000]     lea r14,[clearCode]
-   182 00000203 49BF07000000000000-    mov r15,cClen
-   183 00000203 00                 
-   184 0000020D E881030000             call print
-   185 00000212 E9E4FDFFFF             jmp _start
-   186                                 
-   187                                 checkExitCmd:
-   188 00000217 488D3425[00000000]     lea rsi,[exitCmd]
-   189 0000021F 488D3C25[00000000]     lea rdi,[cmd]
-   190 00000227 48C7C105000000         mov rcx,5
-   191 0000022E E82D030000             call compStringVal
-   192 00000233 4883F800               cmp rax,0
-   193 00000237 0F858C020000           jnz end
-   194                                 
-   195                                 
+   154                                 processInput:
+   155                                  .getCmd:
+   156 00000196 49FFC0                  inc r8
+   157 00000199 418A98[00000000]        mov bl,byte[allUserInput+r8]
+   158 000001A0 4C39C0                  cmp rax,r8
+   159 000001A3 7430                    jz setOptIfIsNull
+   160 000001A5 80FB20                  cmp bl,0x20
+   161 000001A8 480F44DA                cmovz rbx,rdx
+   162 000001AC 418898[00000000]        mov byte[cmd+r8],bl
+   163 000001B3 75DF                    jnz .getCmd
+   164 000001B5 4D31FF                  xor r15,r15
+   165                                 
+   166                                  .getOpt:
+   167 000001B8 49FFC0                  inc r8
+   168 000001BB 48FFC1                  inc rcx
+   169 000001BE 418A98[00000000]        mov bl,byte[allUserInput+r8]
+   170 000001C5 80FB20                  cmp bl,0x20
+   171 000001C8 490F44DF                cmovz rbx,r15
+   172 000001CC 8899[00000000]          mov byte[opt+rcx],bl
+   173 000001D2 4C39C0                  cmp rax,r8
+   174 000001D5 75DF                    jnz .getOpt
+   175                                 
+   176                                 
+   177                                 
+   178                                 setOptIfIsNull:
+   179 000001D7 4929C8                 sub r8,rcx
+   180 000001DA 44880425[00000000]     mov byte[cmdLength],r8b
+   181 000001E2 480FB60425[00000000]     movzx rax, byte[opt]
+   182 000001EB 4883F800               cmp rax,0
+   183 000001EF 7513                   jnz checkCdCmd
+   184 000001F1 488D3425[00000000]     lea rsi,[cWkDir]
+   185 000001F9 488D3C25[00000000]     lea rdi,[opt]
+   186 00000201 E8CE030000             call copyString
+   187                                 
+   188                                 
+   189                                 checkCdCmd:
+   190 00000206 488D3425[00000000]     lea rsi,[cdCmd]
+   191 0000020E 488D3C25[00000000]     lea rdi,[cmd]
+   192 00000216 48C7C103000000         mov rcx,3
+   193 0000021D E898030000             call compStringVal
+   194 00000222 4883F800               cmp rax,0
+   195 00000226 0F85BE020000           jnz processCdCmd
    196                                 
-   197                                 checkCmd:
-   198 0000023D 488D0425[00000000]     lea rax,[allUserInput]
-   199 00000245 E876030000             call clearData
-   200 0000024A 4D31D2                 xor r10,r10
-   201                                  .checkCItemIfValid:
-   202 0000024D 4981FA00001000          cmp r10,1048576
-   203 00000254 7D60                    jge printCmdNotFound
-   204 00000256 418A82[13000000]        mov al,byte[usrContent+r10+19]
-   205 0000025D 3C00                    cmp al,0
-   206 0000025F 7455                    jz printCmdNotFound
-   207 00000261 4831C9                  xor rcx,rcx
-   208 00000264 4D31DB                  xor r11,r11
-   209 00000267 4D89D3                  mov r11,r10
-   210 0000026A 4983C313                add r11,19
+   197                                 
+   198                                 chekClearCmd:
+   199 0000022C 488D3425[00000000]     lea rsi,[clearCmd]
+   200 00000234 488D3C25[00000000]     lea rdi,[cmd]
+   201 0000023C 48C7C106000000         mov rcx,6
+   202 00000243 E872030000             call compStringVal
+   203 00000248 4883F800               cmp rax,0
+   204 0000024C 7425                   jz checkExitCmd
+   205 0000024E 488D0425[00000000]     lea rax,[opt]
+   206 00000256 E8CE030000             call clearData
+   207 0000025B 488D3425[00000000]     lea rsi,[clearOpt]
+   208 00000263 488D3C25[00000000]     lea rdi,[opt]
+   209 0000026B E864030000             call copyString
+   210 00000270 E9CE000000             jmp creatFullPathToCmd
    211                                 
-   212                                  .getCurrentCmdInDirent:
-   213 0000026E 418A83[00000000]        mov al,byte[usrContent+r11]
-   214 00000275 3C00                    cmp al,0
-   215 00000277 8881[00000000]          mov byte[currentCmdC+rcx],al
-   216 0000027D 7406                    jz .cmpCmds
-   217 0000027F 49FFC3                  inc r11
-   218 00000282 48FFC1                  inc rcx
-   219 00000285 EBE5                    jmp .getCurrentCmdInDirent
+   212                                 checkExitCmd:
+   213 00000275 488D3425[00000000]     lea rsi,[exitCmd]
+   214 0000027D 488D3C25[00000000]     lea rdi,[cmd]
+   215 00000285 48C7C105000000         mov rcx,5
+   216 0000028C E829030000             call compStringVal
+   217 00000291 4883F800               cmp rax,0
+   218 00000295 0F8588020000           jnz end
+   219                                 
    220                                 
-   221                                  .cmpCmds:
-   222 00000287 480FB60C25[00000000]      movzx rcx,byte[cmdLength]
-   223 00000290 488D3425[00000000]      lea rsi,[cmd]
-   224 00000298 488D3C25[00000000]      lea rdi,[currentCmdC]
-   225 000002A0 E8BB020000              call compStringVal
-   226 000002A5 4883F800                cmp rax,0
-   227 000002A9 753D                    jnz creatFullPathToCmd
-   228                                 
-   229                                  .updateByteRead:
-   230 000002AB 490FB782[10000000]      movzx rax,word[usrContent+r10+16]
-   231 000002B3 4901C2                  add r10,rax
-   232 000002B6 EB93                    jmp .checkCItemIfValid
-   233                                 
-   234                                 
-   235                                 printCmdNotFound:
-   236 000002B8 4C8D3425[00000000]     lea r14,[cmdNotFoundErr]
-   237 000002C0 49C7C717000000         mov r15,23
-   238 000002C7 E8C7020000             call print
-   239 000002CC E92AFDFFFF             jmp _start
-   240                                 
-   241                                 printCdErr:
-   242 000002D1 4C8D3425[00000000]     lea r14,[cdCmdErr]
-   243 000002D9 49C7C72B000000         mov r15,43
-   244 000002E0 E8AE020000             call print
-   245 000002E5 E911FDFFFF             jmp _start
-   246                                 
-   247                                 creatFullPathToCmd:
-   248 000002EA 49C7C0FFFFFFFF         mov r8,-1
-   249 000002F1 48C7C1FFFFFFFF         mov rcx,-1
-   250                                  .addUsrPath:
-   251 000002F8 49FFC0                  inc r8
-   252 000002FB 48FFC1                  inc rcx
-   253 000002FE 480FB681[00000000]      movzx rax,byte[locCmd+rcx]
-   254 00000306 48C7C32F000000          mov rbx,"/"
-   255 0000030D 4883F800                cmp rax,0
-   256 00000311 480F44C3                cmovz rax,rbx
-   257 00000315 418880[00000000]        mov byte[fullPath+r8],al
-   258 0000031C 75D8                    jnz .addUsrPath
-   259 0000031E 48C7C1FFFFFFFF          mov rcx,-1
-   260                                 
-   261                                  .addCmd:
-   262 00000325 49FFC0                  inc r8
-   263 00000328 48FFC1                  inc rcx
-   264 0000032B 480FB681[00000000]      movzx rax,byte[cmd+rcx]
-   265 00000333 48C7C300000000          mov rbx,0
-   266 0000033A 4883F800                cmp rax,0
-   267 0000033E 480F44C3                cmovz rax,rbx
-   268 00000342 418880[00000000]        mov byte[fullPath+r8],al
-   269 00000349 75D8                    jnz .addCmd
-   270                                 
+   221                                 
+   222                                 checkCmd:
+   223 0000029B 488D0425[00000000]     lea rax,[allUserInput]
+   224 000002A3 E881030000             call clearData
+   225 000002A8 4D31D2                 xor r10,r10
+   226                                  .checkCItemIfValid:
+   227 000002AB 4981FA00001000          cmp r10,1048576
+   228 000002B2 7D60                    jge printCmdNotFound
+   229 000002B4 418A82[13000000]        mov al,byte[usrContent+r10+19]
+   230 000002BB 3C00                    cmp al,0
+   231 000002BD 7455                    jz printCmdNotFound
+   232 000002BF 4831C9                  xor rcx,rcx
+   233 000002C2 4D31DB                  xor r11,r11
+   234 000002C5 4D89D3                  mov r11,r10
+   235 000002C8 4983C313                add r11,19
+   236                                 
+   237                                  .getCurrentCmdInDirent:
+   238 000002CC 418A83[00000000]        mov al,byte[usrContent+r11]
+   239 000002D3 3C00                    cmp al,0
+   240 000002D5 8881[00000000]          mov byte[currentCmdC+rcx],al
+   241 000002DB 7406                    jz .cmpCmds
+   242 000002DD 49FFC3                  inc r11
+   243 000002E0 48FFC1                  inc rcx
+   244 000002E3 EBE5                    jmp .getCurrentCmdInDirent
+   245                                 
+   246                                  .cmpCmds:
+   247 000002E5 480FB60C25[00000000]      movzx rcx,byte[cmdLength]
+   248 000002EE 488D3425[00000000]      lea rsi,[cmd]
+   249 000002F6 488D3C25[00000000]      lea rdi,[currentCmdC]
+   250 000002FE E8B7020000              call compStringVal
+   251 00000303 4883F800                cmp rax,0
+   252 00000307 753D                    jnz creatFullPathToCmd
+   253                                 
+   254                                  .updateByteRead:
+   255 00000309 490FB782[10000000]      movzx rax,word[usrContent+r10+16]
+   256 00000311 4901C2                  add r10,rax
+   257 00000314 EB93                    jmp .checkCItemIfValid
+   258                                 
+   259                                 
+   260                                 printCmdNotFound:
+   261 00000316 4C8D3425[00000000]     lea r14,[cmdNotFoundErr]
+   262 0000031E 49C7C717000000         mov r15,23
+   263 00000325 E8D2020000             call print
+   264 0000032A E9CCFCFFFF             jmp _start
+   265                                 
+   266                                 printCdErr:
+   267 0000032F 4C8D3425[00000000]     lea r14,[cdCmdErr]
+   268 00000337 49C7C72B000000         mov r15,43
+   269 0000033E E8B9020000             call print
+   270 00000343 E9B3FCFFFF             jmp _start
    271                                 
-   272                                 
-   273 0000034B 48C70425[00000000]-    mov qword[addresOfExevArgs],cmd
-   274 0000034B [00000000]         
-   275 00000357 49C7C008000000         mov r8,8
-   276 0000035E 4C8D1425[00000000]     lea r10,[opt]
-   277                                 
-   278                                  .getAddresOfOpt:
-   279 00000366 4D8990[00000000]        mov qword[addresOfExevArgs+r8],r10
-   280 0000036D 4983C008                add r8,8
-   281 00000371 48C7C1FFFFFFFF          mov rcx,-1
-   282                                 
-   283                                  .contByte:
-   284 00000378 48FFC1                  inc rcx
-   285 0000037B 490FB61C0A              movzx rbx,byte[r10+rcx]
-   286 00000380 4883FB00                cmp rbx,0
-   287 00000384 75F0                    jnz .contByte
-   288 00000386 48FFC1                 inc rcx
-   289 00000389 4901CA                 add r10,rcx
-   290 0000038C 41803A00               cmp byte[r10],0
-   291 00000390 75D2                   jnz .getAddresOfOpt
-   292                                 
-   293 00000392 4983C008               add r8,8
-   294 00000396 49C780[00000000]00-    mov qword[addresOfExevArgs+r8],0
-   295 00000396 000000             
+   272                                 creatFullPathToCmd:
+   273 00000348 49C7C0FFFFFFFF         mov r8,-1
+   274 0000034F 48C7C1FFFFFFFF         mov rcx,-1
+   275                                  .addUsrPath:
+   276 00000356 49FFC0                  inc r8
+   277 00000359 48FFC1                  inc rcx
+   278 0000035C 480FB681[00000000]      movzx rax,byte[locCmd+rcx]
+   279 00000364 48C7C32F000000          mov rbx,"/"
+   280 0000036B 4883F800                cmp rax,0
+   281 0000036F 480F44C3                cmovz rax,rbx
+   282 00000373 418880[00000000]        mov byte[fullPath+r8],al
+   283 0000037A 75D8                    jnz .addUsrPath
+   284 0000037C 48C7C1FFFFFFFF          mov rcx,-1
+   285                                 
+   286                                  .addCmd:
+   287 00000383 49FFC0                  inc r8
+   288 00000386 48FFC1                  inc rcx
+   289 00000389 480FB681[00000000]      movzx rax,byte[cmd+rcx]
+   290 00000391 48C7C300000000          mov rbx,0
+   291 00000398 4883F800                cmp rax,0
+   292 0000039C 480F44C3                cmovz rax,rbx
+   293 000003A0 418880[00000000]        mov byte[fullPath+r8],al
+   294 000003A7 75D8                    jnz .addCmd
+   295                                 
    296                                 
    297                                 
-   298                                 
-   299                                 createPip:
-   300 000003A1 48C7C016000000         mov rax,22
-   301 000003A8 488D3C25[00000000]     lea rdi,[pipFd]
-   302 000003B0 0F05                   syscall
-   303                                 
-   304                                 creatChildProc:
-   305 000003B2 48C7C039000000         mov rax,57
-   306 000003B9 0F05                   syscall
-   307 000003BB 4883F800               cmp rax,0
-   308 000003BF 7406                   jz childProc
-   309 000003C1 7F55                   jg parentCont
-   310 000003C3 0F8C00010000           jl end
-   311                                 
-   312                                 
-   313                                 
-   314                                 
-   315                                 
-   316                                 childProc:
-   317 000003C9 4831DB                 xor rbx,rbx
-   318 000003CC 8B1C25[00000000]       mov ebx,dword[pipFd]
-   319 000003D3 48C7C003000000         mov rax,3
-   320 000003DA 4889DF                 mov rdi,rbx
-   321 000003DD 0F05                   syscall
-   322 000003DF 8B1C25[04000000]       mov ebx,dword[pipFd+4]
-   323 000003E6 48C7C021000000         mov rax,33
-   324 000003ED 4889DF                 mov rdi,rbx
-   325 000003F0 48C7C601000000         mov rsi,1
-   326 000003F7 0F05                   syscall
+   298 000003A9 48C70425[00000000]-    mov qword[addresOfExevArgs],cmd
+   299 000003A9 [00000000]         
+   300 000003B5 49C7C008000000         mov r8,8
+   301 000003BC 4C8D1425[00000000]     lea r10,[opt]
+   302                                 
+   303                                  .getAddresOfOpt:
+   304 000003C4 4D8990[00000000]        mov qword[addresOfExevArgs+r8],r10
+   305 000003CB 4983C008                add r8,8
+   306 000003CF 48C7C1FFFFFFFF          mov rcx,-1
+   307                                 
+   308                                  .contByte:
+   309 000003D6 48FFC1                  inc rcx
+   310 000003D9 490FB61C0A              movzx rbx,byte[r10+rcx]
+   311 000003DE 4883FB00                cmp rbx,0
+   312 000003E2 75F0                    jnz .contByte
+   313 000003E4 48FFC1                 inc rcx
+   314 000003E7 4901CA                 add r10,rcx
+   315 000003EA 41803A00               cmp byte[r10],0
+   316 000003EE 75D2                   jnz .getAddresOfOpt
+   317                                 
+   318 000003F0 49C780[00000000]00-    mov qword[addresOfExevArgs+r8],0
+   319 000003F0 000000             
+   320                                 
+   321                                 
+   322                                 
+   323                                 createPip:
+   324 000003FB 48C7C016000000         mov rax,22
+   325 00000402 488D3C25[00000000]     lea rdi,[pipFd]
+   326 0000040A 0F05                   syscall
    327                                 
-   328                                 
-   329 000003F9 48C7C03B000000         mov rax ,59
-   330 00000400 488D3C25[00000000]     lea rdi,[fullPath]
-   331 00000408 488D3425[00000000]     lea rsi,[addresOfExevArgs]
-   332 00000410 488D1425[00000000]     lea rdx,[envp]
-   333 00000418 0F05                   syscall
-   334                                 
+   328                                 creatChildProc:
+   329 0000040C 48C7C039000000         mov rax,57
+   330 00000413 0F05                   syscall
+   331 00000415 4883F800               cmp rax,0
+   332 00000419 7406                   jz childProc
+   333 0000041B 7F55                   jg parentCont
+   334 0000041D 0F8C00010000           jl end
    335                                 
-   336                                 parentCont:
-   337 0000041A 4831C9                 xor rcx,rcx
-   338 0000041D 8B0C25[04000000]       mov ecx,dword[pipFd+4]
-   339 00000424 48C7C003000000         mov rax,3
-   340 0000042B 4889CF                 mov rdi,rcx
-   341 0000042E 0F05                   syscall
-   342 00000430 48C7C03D000000         mov rax,61
-   343 00000437 48C7C7FFFFFFFF         mov rdi,-1
-   344 0000043E 4831F6                 xor rsi,rsi
-   345 00000441 0F05                   syscall
-   346                                 
-   347                                 readDataFromChild:
-   348 00000443 8B0C25[00000000]       mov ecx,dword[pipFd]
-   349 0000044A 48C7C000000000         mov rax,0
-   350 00000451 4889CF                 mov rdi,rcx
-   351 00000454 488D3425[00000000]     lea rsi,[cmdOutput]
-   352 0000045C 48C7C200004001         mov rdx,20971520
-   353 00000463 0F05                   syscall
-   354 00000465 4831DB                 xor rbx,rbx
-   355                                 
-   356                                 
-   357                                 
-   358                                 printOutPutFromChild:
-   359 00000468 8A83[00000000]         mov al,byte[cmdOutput+rbx]
-   360 0000046E 880425[00000000]       mov byte[singleInput],al
-   361 00000475 3C00                   cmp al,0
-   362 00000477 0F847DFBFFFF           jz _start
-   363 0000047D 4C8D3425[00000000]     lea r14,[singleInput]
-   364 00000485 49C7C701000000         mov r15,1
-   365 0000048C E802010000             call print
-   366 00000491 48FFC3                 inc rbx
-   367 00000494 EBD0                   jmp printOutPutFromChild
-   368                                 
-   369                                 processCdCmd:
-   370 00000496 48C7C050000000         mov rax,80
-   371 0000049D 488D3C25[00000000]     lea rdi,[opt]
-   372 000004A5 0F05                   syscall
-   373 000004A7 4883F800               cmp rax,0
-   374 000004AB 0F8C1AFEFFFF           jl printCdErr
-   375 000004B1 48C7C101000000         mov rcx,1
-   376 000004B8 488D0425[00000000]     lea rax,[cWkDir]
-   377 000004C0 E8FB000000             call clearData
-   378 000004C5 E875000000             call getCwd
-   379 000004CA E92CFBFFFF             jmp _start
+   336                                 
+   337                                 
+   338                                 
+   339                                 
+   340                                 childProc:
+   341 00000423 4831DB                 xor rbx,rbx
+   342 00000426 8B1C25[00000000]       mov ebx,dword[pipFd]
+   343 0000042D 48C7C003000000         mov rax,3
+   344 00000434 4889DF                 mov rdi,rbx
+   345 00000437 0F05                   syscall
+   346 00000439 8B1C25[04000000]       mov ebx,dword[pipFd+4]
+   347 00000440 48C7C021000000         mov rax,33
+   348 00000447 4889DF                 mov rdi,rbx
+   349 0000044A 48C7C601000000         mov rsi,1
+   350 00000451 0F05                   syscall
+   351                                 
+   352                                 
+   353 00000453 48C7C03B000000         mov rax ,59
+   354 0000045A 488D3C25[00000000]     lea rdi,[fullPath]
+   355 00000462 488D3425[00000000]     lea rsi,[addresOfExevArgs]
+   356 0000046A 488D1425[00000000]     lea rdx,[envp]
+   357 00000472 0F05                   syscall
+   358                                 
+   359                                 
+   360                                 parentCont:
+   361 00000474 4831C9                 xor rcx,rcx
+   362 00000477 8B0C25[04000000]       mov ecx,dword[pipFd+4]
+   363 0000047E 48C7C003000000         mov rax,3
+   364 00000485 4889CF                 mov rdi,rcx
+   365 00000488 0F05                   syscall
+   366 0000048A 48C7C03D000000         mov rax,61
+   367 00000491 48C7C7FFFFFFFF         mov rdi,-1
+   368 00000498 4831F6                 xor rsi,rsi
+   369 0000049B 0F05                   syscall
+   370                                 
+   371                                 readDataFromChild:
+   372 0000049D 8B0C25[00000000]       mov ecx,dword[pipFd]
+   373 000004A4 48C7C000000000         mov rax,0
+   374 000004AB 4889CF                 mov rdi,rcx
+   375 000004AE 488D3425[00000000]     lea rsi,[cmdOutput]
+   376 000004B6 48C7C200004001         mov rdx,20971520
+   377 000004BD 0F05                   syscall
+   378 000004BF 4831DB                 xor rbx,rbx
+   379                                 
    380                                 
    381                                 
-   382                                 end:
-   383 000004CF 4831C9                 xor rcx,rcx
-   384 000004D2 48C7C03C000000         mov rax,60
-   385 000004D9 48C7C700000000         mov rdi,0
-   386 000004E0 0F05                   syscall
-   387                                 
-   388                                 getAllCmd:
-   389                                  .openUsrDir:
-   390 000004E2 48C7C002000000          mov rax,2
-   391 000004E9 488D3C25[00000000]      lea rdi,[locCmd]
-   392 000004F1 48C7C600000100          mov rsi,0x10000
-   393 000004F8 0F05                    syscall
-   394 000004FA 66890425[00000000]      mov word[usrFd],ax
-   395                                 
-   396                                  .getUsrContent:
-   397 00000502 480FB71C25[00000000]      movzx rbx,word[usrFd]
-   398 0000050B 48C7C0D9000000          mov rax,217
-   399 00000512 4889DF                  mov rdi,rbx
-   400 00000515 488D3425[00000000]      lea rsi,[usrContent]
-   401 0000051D 48C7C200001000          mov rdx,1048576
-   402 00000524 0F05                    syscall
-   403                                 
-   404                                  .closeUsrDir:
-   405 00000526 480FB70C25[00000000]      movzx rcx,word[usrFd]
-   406 0000052F 48C7C003000000          mov rax,3
-   407 00000536 4889CF                  mov rdi,rcx
-   408 00000539 0F05                    syscall
-   409                                 
-   410 0000053B C60425[00000000]01     mov byte[isAllCmdP],1
-   411 00000543 C3                     ret
-   412                                 
-   413                                 getCwd:
-   414 00000544 48C7C04F000000         mov rax,79
-   415 0000054B 488D3C25[00000000]     lea rdi,[cWkDir]
-   416 00000553 48C7C600020000         mov rsi,512
-   417 0000055A 0F05                   syscall
-   418 0000055C C60425[00000000]01     mov byte[isCWDSet],1
-   419 00000564 C3                     ret
-   420                                 
-   421                                 
-   422                                 compStringVal:
-   423 00000565 FC                     cld
-   424 00000566 F3A6                   repe cmpsb
-   425 00000568 49C7C400000000         mov r12,0
-   426 0000056F 49C7C501000000         mov r13,1
-   427 00000576 490F44C5               cmovz rax,r13
-   428 0000057A 490F45C4               cmovnz rax,r12
-   429                                 
-   430                                 
-   431                                 
-   432 0000057E C3                     ret
+   382                                 printOutPutFromChild:
+   383 000004C2 8A83[00000000]         mov al,byte[cmdOutput+rbx]
+   384 000004C8 880425[00000000]       mov byte[singleInput],al
+   385 000004CF 3C00                   cmp al,0
+   386 000004D1 0F8423FBFFFF           jz _start
+   387 000004D7 4C8D3425[00000000]     lea r14,[singleInput]
+   388 000004DF 49C7C701000000         mov r15,1
+   389 000004E6 E811010000             call print
+   390 000004EB 48FFC3                 inc rbx
+   391 000004EE EBD0                   jmp printOutPutFromChild
+   392                                 
+   393                                 processCdCmd:
+   394 000004F0 48C7C050000000         mov rax,80
+   395 000004F7 488D3C25[00000000]     lea rdi,[opt]
+   396 000004FF 0F05                   syscall
+   397 00000501 4883F800               cmp rax,0
+   398 00000505 0F8C1EFEFFFF           jl printCdErr
+   399 0000050B 48C7C101000000         mov rcx,1
+   400 00000512 488D0425[00000000]     lea rax,[cWkDir]
+   401 0000051A E80A010000             call clearData
+   402 0000051F E875000000             call getCwd
+   403 00000524 E9D2FAFFFF             jmp _start
+   404                                 
+   405                                 
+   406                                 end:
+   407 00000529 4831C9                 xor rcx,rcx
+   408 0000052C 48C7C03C000000         mov rax,60
+   409 00000533 48C7C700000000         mov rdi,0
+   410 0000053A 0F05                   syscall
+   411                                 
+   412                                 getAllCmd:
+   413                                  .openUsrDir:
+   414 0000053C 48C7C002000000          mov rax,2
+   415 00000543 488D3C25[00000000]      lea rdi,[locCmd]
+   416 0000054B 48C7C600000100          mov rsi,0x10000
+   417 00000552 0F05                    syscall
+   418 00000554 66890425[00000000]      mov word[usrFd],ax
+   419                                 
+   420                                  .getUsrContent:
+   421 0000055C 480FB71C25[00000000]      movzx rbx,word[usrFd]
+   422 00000565 48C7C0D9000000          mov rax,217
+   423 0000056C 4889DF                  mov rdi,rbx
+   424 0000056F 488D3425[00000000]      lea rsi,[usrContent]
+   425 00000577 48C7C200001000          mov rdx,1048576
+   426 0000057E 0F05                    syscall
+   427                                 
+   428                                  .closeUsrDir:
+   429 00000580 480FB70C25[00000000]      movzx rcx,word[usrFd]
+   430 00000589 48C7C003000000          mov rax,3
+   431 00000590 4889CF                  mov rdi,rcx
+   432 00000593 0F05                    syscall
    433                                 
-   434                                 copyString:
-   435 0000057F 48C7C1FFFFFFFF         mov rcx,-1
-   436                                  .copy:
-   437 00000586 48FFC1                  inc rcx
-   438 00000589 480FB6040E              movzx rax,byte[rsi+rcx]
-   439 0000058E 88040F                  mov byte[rdi+rcx],al
-   440 00000591 4883F800                cmp rax,0
-   441 00000595 75ED                    jnz .copy
-   442 00000597 C3                     ret
-   443                                 
+   434 00000595 C60425[00000000]01     mov byte[isAllCmdP],1
+   435 0000059D C3                     ret
+   436                                 
+   437                                 getCwd:
+   438 0000059E 48C7C04F000000         mov rax,79
+   439 000005A5 488D3C25[00000000]     lea rdi,[cWkDir]
+   440 000005AD 48C7C600020000         mov rsi,512
+   441 000005B4 0F05                   syscall
+   442 000005B6 C60425[00000000]01     mov byte[isCWDSet],1
+   443 000005BE C3                     ret
    444                                 
-   445                                 print:
-   446 00000598 48C7C001000000         mov rax,1
-   447 0000059F 48C7C701000000         mov rdi,1
-   448 000005A6 498D36                 lea rsi,[r14]
-   449 000005A9 4C89FA                 mov rdx,r15
-   450 000005AC 0F05                   syscall
-   451 000005AE C3                     ret
-   452                                 
+   445                                 
+   446                                 compStringVal:
+   447 000005BF FC                     cld
+   448 000005C0 F3A6                   repe cmpsb
+   449 000005C2 49C7C400000000         mov r12,0
+   450 000005C9 49C7C501000000         mov r13,1
+   451 000005D0 490F44C5               cmovz rax,r13
+   452 000005D4 490F45C4               cmovnz rax,r12
    453                                 
    454                                 
-   455                                 countChar:
-   456 000005AF 48C7C1FFFFFFFF         mov rcx,-1
-   457                                  .count:
-   458 000005B6 48FFC1                  inc rcx
-   459 000005B9 480FB61408              movzx rdx,byte[rax+rcx]
-   460 000005BE 4883FA00                cmp rdx,0
-   461 000005C2 75F0                    jnz .count
-   462 000005C4 C3                     ret
-   463                                 
-   464                                 clearData:
-   465 000005C5 48C7C1FFFFFFFF         mov rcx,-1
-   466 000005CC 4D31ED                 xor r13,r13
-   467                                  .start:
-   468 000005CF 48FFC1                  inc rcx
-   469 000005D2 448A2C08                mov r13b,byte[rax+rcx]
-   470 000005D6 4180FD00                cmp r13b,0
-   471 000005DA C6040800                mov byte[rax+rcx],0
-   472 000005DE 75ED                    jnz .start
-   473 000005E0 C3                     ret
-   474                                 
-   475                                 
-   476                                 
-   477                                 
-   478                                 
-   479                                 
+   455                                 
+   456 000005D8 C3                     ret
+   457                                 
+   458                                 copyString:
+   459 000005D9 49C7C700000000         mov r15,0
+   460 000005E0 48C7C1FFFFFFFF         mov rcx,-1
+   461                                  .copy:
+   462 000005E7 48FFC1                  inc rcx
+   463 000005EA 480FB6040E              movzx rax,byte[rsi+rcx]
+   464 000005EF 3C20                    cmp al,0x20
+   465 000005F1 490F44C7                cmovz rax,r15
+   466 000005F5 88040F                  mov byte[rdi+rcx],al
+   467 000005F8 74EB                    jz .copy
+   468 000005FA 4883F800                cmp rax,0
+   469 000005FE 75E5                    jnz .copy
+   470 00000600 C3                     ret
+   471                                 
+   472                                 
+   473                                 print:
+   474 00000601 48C7C001000000         mov rax,1
+   475 00000608 48C7C701000000         mov rdi,1
+   476 0000060F 498D36                 lea rsi,[r14]
+   477 00000612 4C89FA                 mov rdx,r15
+   478 00000615 0F05                   syscall
+   479 00000617 C3                     ret
    480                                 
    481                                 
    482                                 
+   483                                 countChar:
+   484 00000618 48C7C1FFFFFFFF         mov rcx,-1
+   485                                  .count:
+   486 0000061F 48FFC1                  inc rcx
+   487 00000622 480FB61408              movzx rdx,byte[rax+rcx]
+   488 00000627 4883FA00                cmp rdx,0
+   489 0000062B 75F0                    jnz .count
+   490 0000062D C3                     ret
+   491                                 
+   492                                 clearData:
+   493 0000062E 48C7C1FFFFFFFF         mov rcx,-1
+   494 00000635 4D31ED                 xor r13,r13
+   495                                  .start:
+   496 00000638 48FFC1                  inc rcx
+   497 0000063B 448A2C08                mov r13b,byte[rax+rcx]
+   498 0000063F 4180FD00                cmp r13b,0
+   499 00000643 C6040800                mov byte[rax+rcx],0
+   500 00000647 75ED                    jnz .start
+   501 00000649 C3                     ret
+   502                                 
+   503                                 clearNData:
+   504 0000064A 48C7C1FFFFFFFF         mov rcx,-1
+   505 00000651 4D31ED                 xor r13,r13
+   506                                  .start:
+   507 00000654 48FFC1                  inc rcx
+   508 00000657 448A2C08                mov r13b,byte[rax+rcx]
+   509 0000065B 4839CB                  cmp rbx,rcx
+   510 0000065E C6040800                mov byte[rax+rcx],0
+   511 00000662 75EE                    jnz .start
+   512 00000664 C3                     ret
+   513                                 
+   514                                 
+   515                                 
+   516                                 
+   517                                 
+   518                                 
+   519                                 
