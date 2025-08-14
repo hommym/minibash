@@ -147,7 +147,7 @@ processInput:
         inc r8
         mov bl,byte[allUserInput+r8]
         cmp rax,r8
-        jz  setOptIfIsNull
+        jz  setCmdLen
         cmp bl,0x20
         cmovz rbx,rdx
         mov byte[cmd+r8],bl
@@ -165,17 +165,11 @@ processInput:
         jnz .getOpt        
 ;break user input into cmd and options
 
-
-setOptIfIsNull:
+setCmdLen:
 sub r8,rcx
 mov byte[cmdLength],r8b
-movzx rax, byte[opt]
-cmp rax,0
-jnz checkCdCmd
-lea rsi,[cWkDir]
-lea rdi,[opt]
-call copyString
-;check if opt is empty and copy cwd to opt
+
+
 
 checkCdCmd:
 lea rsi,[cdCmd]
@@ -186,19 +180,7 @@ cmp rax,0
 jnz processCdCmd
 ;check if the cmd is cd 
 
-chekClearCmd:
-lea rsi,[clearCmd]
-lea rdi,[cmd]
-mov rcx,6
-call compStringVal
-cmp rax,0
-jz checkExitCmd
-lea rax,[opt]
-call clearData    ; clearing cwd set as opt 
-lea rsi,[clearOpt]
-lea rdi,[opt]
-call copyString
-jmp creatFullPathToCmd
+
 
 checkExitCmd:
 lea rsi,[exitCmd]
@@ -288,6 +270,9 @@ mov rcx,-1
 
 mov qword[addresOfExevArgs],cmd
 mov r8,8 ; using r8 to track where we are in addresOfExevArgs
+movzx rax, byte[opt]
+cmp rax,0   ; checking there is any opt 
+jz createPip
 lea r10,[opt] ;using r10 to track where we are in otp
 
             .getAddresOfOpt:
@@ -305,11 +290,12 @@ add r10,rcx
 cmp byte[r10],0
 jnz .getAddresOfOpt
 ;dynamically saving cmd options start addresses in addresOfExevArgs
-mov qword[addresOfExevArgs+r8],0
+
 
 
 
 createPip:
+mov qword[addresOfExevArgs+r8],0  ; null terminating addresOfExevArgs
 mov rax,22
 lea rdi,[pipFd]
 syscall
@@ -380,6 +366,7 @@ inc rbx
 jmp printOutPutFromChild
 
 processCdCmd:
+call setOptIfIsNull
 mov rax,80
 lea rdi,[opt]
 syscall; chdir syscall
@@ -467,6 +454,19 @@ mov rdx,r15
 syscall
 ret;load buffer address into r14 and num of bytes to print into r15
 
+
+
+setOptIfIsNull:
+movzx rax, byte[opt]
+cmp rax,0
+jnz .end
+                .copy:
+                lea rsi,[cWkDir]
+                lea rdi,[opt]
+                call copyString
+                .end:
+                xor rax,rax
+ret;check if opt is empty and copy cwd to opt
 
 
 countChar:
