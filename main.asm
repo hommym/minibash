@@ -19,14 +19,15 @@ clearCmd            db "clear",0
 clearOpt            db "-T xterm-256color",0
 exitCmd             db "exit",0
 isEnvP              db 0
-
+escFlag             db 0  ;0 means false and 1 means true
 
 
 
 
     section .bss
 usrContent             resq 131072   ;reserving 1mb space for content of usr directory
-cmdOutput              resq 2621440    ;20mb space for output   
+cmdOutput              resq 2621440  ;20mb space for output   
+prevCmd                resq 2621440  ;20mb space for prev executed commands    
 envp                   resq 100 
 allUserInput           resb 1024
 opt                    resb 500
@@ -40,7 +41,7 @@ usrFd                  resw 1
 singleInput            resb 1
 cWkDir                 resb 1024
 oldCWkDir              resb 1024
-
+prevCmdP               resq 1
 
 
     section .text
@@ -108,26 +109,39 @@ call getAllCmd
 
 
 getUserInput:
-mov rax,0
-mov rdi,0
-lea rsi,[singleInput]
-mov rdx,1
-syscall
+call getInput
+mov r8,0
+mov r9,1;
+
+
+checkEscFlag:
+cmp byte[escFlag],1
+jz processEscChars
+
+setEscFlag:
+cmp bl,0x1B
+cmovz r8,r9
+mov  byte[escFlag],r8b
+jz  getUserInput
+; setting the escFlag if the data is esc character
+
+
 
 saveInput:
-movzx rax,word[bytTracker]
-mov bl,byte[singleInput]
 cmp bl,0xa
 jz printInput
 mov byte[allUserInput+rax],bl
 inc word[bytTracker]
+
+
+
 
 printInput:
 mov rax,1
 mov rdi,1
 lea rsi,[singleInput]
 mov rdx,1
-; syscall
+syscall
 jnz getUserInput
 movzx rax,byte[allUserInput]
 cmp rax,0
@@ -193,8 +207,6 @@ jnz end
 
 
 checkCmd:
-lea rax,[allUserInput]
-call clearData              
 xor r10,r10  ;will contain bytes read from usrContent during cmd search
         .checkCItemIfValid:
         cmp r10,1048576
@@ -358,7 +370,7 @@ printOutPutFromChild:
 mov al,byte[cmdOutput+rbx]
 mov byte[singleInput],al
 cmp al,0
-jz _start
+jz saveCmd
 lea r14,[singleInput]
 mov r15,1
 call print;printing output char by char
@@ -377,6 +389,38 @@ lea rax,[cWkDir]
 call clearData
 call getCwd
 jmp _start
+
+
+processEscChars:
+cmp bl,0x5B  ;checking if is an arrow key
+jz .processArowKey
+
+
+                .processArowKey:
+                mov r8,0   ; if it contains 0 is down and 1 is up
+                mov r9,1
+                call getInput
+                cmp bl,0x42
+                jz getPrevCmd
+                cmp bl,0x41
+                cmovz r8,r9
+                jz getPrevCmd 
+
+mov byte[escFlag],0 ;resetting the escFlag
+jmp _start
+
+
+
+getPrevCmd:
+; write code for getting prev cmds 
+
+
+saveCmd:
+; code for saving cmd that was just executed
+lea rax,[allUserInput]
+call clearData  
+jmp _start
+
 
 
 end:
@@ -478,6 +522,19 @@ mov rcx,-1
     jnz .count    
 ret ;load buffer start address to rax
 
+
+getInput:
+mov rax,0
+mov rdi,0
+lea rsi,[singleInput]
+mov rdx,1
+syscall
+movzx rax,word[bytTracker]
+mov bl,byte[singleInput]
+ret ;the input is found in bl and number of taken at any particular instance is in rax
+
+
+
 clearData:
 mov rcx,-1
 xor r13,r13
@@ -501,8 +558,16 @@ xor r13,r13
 ret  ; this procedure takes start address of section to be in rax and number of bytes to be clear in rbx
 
 
-;"man java" does not work
-;caching previous entered commands 
+
+;caching previously entered commands 
+    ;processing down and up arraow keys-done
+    ;saving prev executed cmds
+    ;getting prev cmds
+
+
+;add feature to only alllow terminal to end with the exit command
 
 
 
+;bugs
+;"man java" does not work(pending)
