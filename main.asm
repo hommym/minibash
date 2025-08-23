@@ -20,14 +20,16 @@ clearOpt            db "-T xterm-256color",0
 exitCmd             db "exit",0
 isEnvP              db 0
 escFlag             db 0  ;0 means false and 1 means true
-
+prevCmdOffset       dq 0
+prevCmdSizeOffset   dq 0
 
 
 
     section .bss
 usrContent             resq 131072   ;reserving 1mb space for content of usr directory
 cmdOutput              resq 2621440  ;20mb space for output   
-prevCmd                resq 2621440  ;20mb space for prev executed commands    
+prevCmd                resq 2621440  ;20mb space for prev executed commands  
+prevCmdSize            resw 1000  
 envp                   resq 100 
 allUserInput           resb 1024
 opt                    resb 500
@@ -150,10 +152,10 @@ jz _start
 xor rbx,rbx
 mov r8,-1
 mov rcx,-1
-mov rdx,0
-movzx rax ,byte[bytTracker]        
-mov byte[allUserInput+rax],0; null terminating allUserInput
+mov rdx,0        
 movzx rax,word[bytTracker]
+mov byte[allUserInput+rax],0; null terminating allUserInput
+
 
 
 processInput:
@@ -417,6 +419,18 @@ getPrevCmd:
 
 saveCmd:
 ; code for saving cmd that was just executed
+mov rax,qword[prevCmdOffset]
+lea rsi,[allUserInput]
+lea rdi,[prevCmd+rax]
+mov rcx,rdi
+call copyStringWithoutRemoveSpace
+sub rdi,rcx
+add qword[prevCmdOffset],rdi
+mov qword[prevCmdP],rcx
+movzx rcx,word[bytTracker]
+movzx rax,word[prevCmdSizeOffset]
+mov word[prevCmdSize+rax*2],cx
+inc word [prevCmdSizeOffset]
 lea rax,[allUserInput]
 call clearData  
 jmp _start
@@ -490,6 +504,22 @@ mov rcx,-1
 ret
 ;rsi source adress and rdi is destination address
 
+copyStringWithoutRemoveSpace:
+mov r15,0
+    .copy:
+    movzx rax,byte[rsi]
+    mov byte[rdi],al
+    cmp rax,0
+    jz .end
+    inc rsi
+    inc rdi
+    jmp .copy
+
+    .end:
+    inc rdi
+    ret
+;rsi source adress and rdi is destination address and rbx for the offset for destination
+
 print:
 mov rax,1
 mov rdi,1
@@ -547,21 +577,26 @@ xor r13,r13
 ret  ; this procedure takes argument passed in rax
 
 clearNData:
-mov rcx,-1
+add rbx,rax
 xor r13,r13
+
     .start:
-    inc rcx
-    mov r13b,byte[rax+rcx]
-    cmp rbx,rcx
-    mov byte[rax+rcx],0
-    jnz .start
-ret  ; this procedure takes start address of section to be in rax and number of bytes to be clear in rbx
+    mov r13b,byte[rax]
+    cmp rbx,rax
+    jz .end
+    mov byte[rax],0
+    inc rax
+    jmp .start
+
+    .end:
+    ret
+  ; this procedure takes start address of section to be in rax and number of bytes to be clear in rbx
 
 
 
 ;caching previously entered commands 
     ;processing down and up arraow keys-done
-    ;saving prev executed cmds
+    ;saving prev executed cmds and their size-done
     ;getting prev cmds
 
 
