@@ -21,7 +21,8 @@ exitCmd             db "exit",0
 isEnvP              db 0
 escFlag             db 0  ;0 means false and 1 means true
 prevCmdOffset       dq 0
-prevCmdSizeOffset   dq 0
+prevCmdSizeOffset   dq -1
+prevCmdSizeCalc     dq 0
 
 
 
@@ -414,6 +415,55 @@ jmp _start
 
 
 getPrevCmd:
+xor r9,r9 ;for holding size of the prev cmd we are getting
+cmp r8,0
+jnz .up
+
+    .down:
+    lea rax,[prevCmd]
+    add rax,qword[prevCmdOffset]
+    lea rbx,[prevCmdSize]
+    add rbx,qword[prevCmdSizeOffset]
+    movzx rdx,word[rbx]
+    sub rax,rdx
+    cmp rax,qword[prevCmdP]
+    jz _start
+    ; condition to check if we are on the most recently executed cmd
+    mov rax,qword[prevCmdP]
+    mov rbx,qword[prevCmdSizeCalc]
+    movzx r9,word[prevCmdSize+rbx*2]
+    mov rsi,rax
+    lea rdi,[allUserInput]
+    call copyStringWithoutRemoveSpace
+    mov word[bytTracker],r9w
+    add qword[prevCmdP],r9
+    inc qword[prevCmdSizeCalc]
+    ; set the adress of the cmd to copy and it size
+
+
+    .up:
+    lea rax,[prevCmd]
+    cmp qword[prevCmdP],rax
+    jz _start
+    ; write condition to check if we are on the first executed cmd
+       mov rax,qword[prevCmdP]
+    mov rbx,qword[prevCmdSizeCalc]
+    movzx r9,word[prevCmdSize+rbx*2]
+    mov rsi,rax
+    lea rdi,[allUserInput]
+    call copyStringWithoutRemoveSpace
+    mov word[bytTracker],r9w
+    sub qword[prevCmdP],r9
+    dec qword[prevCmdSizeCalc]
+    ; set the adress of the cmd to copy and it size
+
+
+mov byte[escFlag],0 ;resetting the escFlag    
+lea r14,[allUserInput]
+mov r15,r9
+call print
+jmp getUserInput
+
 ; write code for getting prev cmds 
 
 
@@ -426,11 +476,12 @@ mov rcx,rdi
 call copyStringWithoutRemoveSpace
 sub rdi,rcx
 add qword[prevCmdOffset],rdi
-mov qword[prevCmdP],rcx
+mov qword[prevCmdP],rcx   ; saving a pointer to the prev cmd which was just saved
 movzx rcx,word[bytTracker]
-movzx rax,word[prevCmdSizeOffset]
+inc qword [prevCmdSizeOffset]
+mov rax,qword[prevCmdSizeOffset]
 mov word[prevCmdSize+rax*2],cx
-inc word [prevCmdSizeOffset]
+mov qword[prevCmdSizeCalc],rax
 lea rax,[allUserInput]
 call clearData  
 jmp _start
