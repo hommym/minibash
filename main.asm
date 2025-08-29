@@ -20,17 +20,17 @@ clearOpt            db "-T xterm-256color",0
 exitCmd             db "exit",0
 isEnvP              db 0
 escFlag             db 0  ;0 means false and 1 means true
-prevCmdOffset       dq 0
-prevCmdSizeOffset   dq -1
-prevCmdSizeCalc     dq 0
+cmdHistoryOffset       dq 0
+cmdsSizeHistoryOffset   dq -1
+mostRecentCmdSizeOffsetCalc     dq 0
 
 
 
     section .bss
 usrContent             resq 131072   ;reserving 1mb space for content of usr directory
 cmdOutput              resq 2621440  ;20mb space for output   
-prevCmd                resq 2621440  ;20mb space for prev executed commands  
-prevCmdSize            resw 1000  
+cmdHistory                resq 2621440  ;20mb space for prev executed commands  
+exeCmdsSizeHistory            resw 1000  
 envp                   resq 100 
 allUserInput           resb 1024
 opt                    resb 500
@@ -44,7 +44,7 @@ usrFd                  resw 1
 singleInput            resb 1
 cWkDir                 resb 1024
 oldCWkDir              resb 1024
-prevCmdP               resq 1
+mostRecentCmdP               resq 1
 
 
     section .text
@@ -144,7 +144,7 @@ mov rax,1
 mov rdi,1
 lea rsi,[singleInput]
 mov rdx,1
-syscall
+; syscall
 jnz getUserInput
 movzx rax,byte[allUserInput]
 cmp rax,0
@@ -156,6 +156,7 @@ mov rcx,-1
 mov rdx,0        
 movzx rax,word[bytTracker]
 mov byte[allUserInput+rax],0; null terminating allUserInput
+
 
 
 
@@ -246,6 +247,9 @@ xor r10,r10  ;will contain bytes read from usrContent during cmd search
 ;check if cmd exist
 
 printCmdNotFound:
+call getAddressInHistoryOfMostRecentExeCmd
+mov qword[mostRecentCmdP],rax
+mov qword[mostRecentCmdSizeOffsetCalc],rdx
 lea r14,[cmdNotFoundErr]
 mov r15,23
 call print
@@ -397,9 +401,8 @@ jmp _start
 processEscChars:
 cmp bl,0x5B  ;checking if is an arrow key
 jz .processArowKey
-
-
                 .processArowKey:
+                mov byte[escFlag],0 ;resetting the escFlag
                 mov r8,0   ; if it contains 0 is down and 1 is up
                 mov r9,1
                 call getInput
@@ -408,8 +411,6 @@ jz .processArowKey
                 cmp bl,0x41
                 cmovz r8,r9
                 jz getPrevCmd 
-
-mov byte[escFlag],0 ;resetting the escFlag
 jmp _start
 
 
@@ -420,47 +421,24 @@ cmp r8,0
 jnz .up
 
     .down:
-    lea rax,[prevCmd]
-    add rax,qword[prevCmdOffset]
-    lea rbx,[prevCmdSize]
-    add rbx,qword[prevCmdSizeOffset]
-    movzx rdx,word[rbx]
-    sub rax,rdx
-    cmp rax,qword[prevCmdP]
-    jz _start
+    call getAddressInHistoryOfMostRecentExeCmd
+    cmp rax,qword[mostRecentCmdP]
+    jl _start
     ; condition to check if we are on the most recently executed cmd
-    mov rax,qword[prevCmdP]
-    mov rbx,qword[prevCmdSizeCalc]
-    movzx r9,word[prevCmdSize+rbx*2]
-    mov rsi,rax
-    lea rdi,[allUserInput]
-    call copyStringWithoutRemoveSpace
-    mov word[bytTracker],r9w
-    add qword[prevCmdP],r9
-    inc qword[prevCmdSizeCalc]
-    ; set the adress of the cmd to copy and it size
+
 
 
     .up:
-    lea rax,[prevCmd]
-    cmp qword[prevCmdP],rax
-    jz _start
+    lea rax,[cmdHistory]
+    cmp qword[mostRecentCmdP],rax
+    jl _start
     ; write condition to check if we are on the first executed cmd
-       mov rax,qword[prevCmdP]
-    mov rbx,qword[prevCmdSizeCalc]
-    movzx r9,word[prevCmdSize+rbx*2]
-    mov rsi,rax
-    lea rdi,[allUserInput]
-    call copyStringWithoutRemoveSpace
-    mov word[bytTracker],r9w
-    sub qword[prevCmdP],r9
-    dec qword[prevCmdSizeCalc]
-    ; set the adress of the cmd to copy and it size
+  
 
 
-mov byte[escFlag],0 ;resetting the escFlag    
+ 
 lea r14,[allUserInput]
-mov r15,r9
+movzx r15,word[bytTracker]
 call print
 jmp getUserInput
 
@@ -469,19 +447,19 @@ jmp getUserInput
 
 saveCmd:
 ; code for saving cmd that was just executed
-mov rax,qword[prevCmdOffset]
+mov rax,qword[cmdHistoryOffset]
 lea rsi,[allUserInput]
-lea rdi,[prevCmd+rax]
+lea rdi,[cmdHistory+rax]
 mov rcx,rdi
 call copyStringWithoutRemoveSpace
 sub rdi,rcx
-add qword[prevCmdOffset],rdi
-mov qword[prevCmdP],rcx   ; saving a pointer to the prev cmd which was just saved
+add qword[cmdHistoryOffset],rdi
+mov qword[mostRecentCmdP],rcx   ; saving a pointer to the prev cmd which was just saved
 movzx rcx,word[bytTracker]
-inc qword [prevCmdSizeOffset]
-mov rax,qword[prevCmdSizeOffset]
-mov word[prevCmdSize+rax*2],cx
-mov qword[prevCmdSizeCalc],rax
+inc qword [cmdsSizeHistoryOffset]
+mov rax,qword[cmdsSizeHistoryOffset]
+mov word[exeCmdsSizeHistory+rax*2],cx
+mov qword[mostRecentCmdSizeOffsetCalc],rax
 lea rax,[allUserInput]
 call clearData  
 jmp _start
@@ -643,6 +621,19 @@ xor r13,r13
     ret
   ; this procedure takes start address of section to be in rax and number of bytes to be clear in rbx
 
+
+getAddressInHistoryOfMostRecentExeCmd:
+mov rdx,qword[cmdsSizeHistoryOffset]
+mov r9,rdx
+shl r9,1
+lea rax,[cmdHistory]
+add rax,qword[cmdHistoryOffset]
+lea rbx,[exeCmdsSizeHistory]
+add rbx,r9
+movzx rdx,word[rbx]
+sub rax,rdx
+mov rdx,qword[cmdsSizeHistoryOffset]
+ret  ;the address is returned in rax and it size adress in rdx
 
 
 ;caching previously entered commands 
