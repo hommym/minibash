@@ -144,7 +144,7 @@ mov rax,1
 mov rdi,1
 lea rsi,[singleInput]
 mov rdx,1
-; syscall
+syscall
 jnz getUserInput
 movzx rax,byte[allUserInput]
 cmp rax,0
@@ -395,14 +395,14 @@ mov rcx,1
 lea rax,[cWkDir]
 call clearData
 call getCwd
-jmp _start
+jmp saveCmd
 
 
 processEscChars:
 cmp bl,0x5B  ;checking if is an arrow key
 jz .processArowKey
                 .processArowKey:
-                mov byte[escFlag],0 ;resetting the escFlag
+                mov byte[escFlag],0 ;resetting the escFlag 
                 mov r8,0   ; if it contains 0 is down and 1 is up
                 mov r9,1
                 call getInput
@@ -429,17 +429,31 @@ jnz .up
 
 
     .up:
+    cmp byte[cmdHistory],0
+    jz _start
+    lea rax,[allUserInput]
+    call clearData ;clearing allUserInput memory section 
+    mov rax,qword[mostRecentCmdSizeOffsetCalc]
+    movzx rax, word[exeCmdsSizeHistory+rax*2]
+    mov word[bytTracker],ax
+    mov rax,qword[mostRecentCmdP]
+    mov rsi,rax
+    lea rdi,[allUserInput]
+    call copyStringWithoutRemoveSpace
     lea rax,[cmdHistory]
     cmp qword[mostRecentCmdP],rax
-    jl _start
-    ; write condition to check if we are on the first executed cmd
-  
+    jz .printCmd ; write condition to check if we are on the first executed cmd
+    dec qword[mostRecentCmdSizeOffsetCalc] ;updating offset of size to the prev cmd
+    dec qword[mostRecentCmdP] ; moving pointer to the null value of prev cmd
+    mov rax,qword[mostRecentCmdSizeOffsetCalc]
+    movzx rax, word[exeCmdsSizeHistory+rax*2]
+    sub qword[mostRecentCmdP],rax
 
+    .printCmd:
+    lea r14,[allUserInput]
+    movzx r15,word[bytTracker]
+    call print
 
- 
-lea r14,[allUserInput]
-movzx r15,word[bytTracker]
-call print
 jmp getUserInput
 
 ; write code for getting prev cmds 
@@ -547,7 +561,7 @@ mov r15,0
     .end:
     inc rdi
     ret
-;rsi source adress and rdi is destination address and rbx for the offset for destination
+;rsi source adress and rdi is destination address 
 
 print:
 mov rax,1
@@ -639,7 +653,8 @@ ret  ;the address is returned in rax and it size adress in rdx
 ;caching previously entered commands 
     ;processing down and up arraow keys-done
     ;saving prev executed cmds and their size-done
-    ;getting prev cmds
+    ;getting prev cmds for up arrow key-done
+    ;getting prev cmds for up arrow key 
 
 
 ;add feature to only alllow terminal to end with the exit command
