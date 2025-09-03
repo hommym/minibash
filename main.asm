@@ -654,7 +654,7 @@ ret  ;the address is returned in rax and it size adress in rdx
     ;processing down and up arraow keys-done
     ;saving prev executed cmds and their size-done
     ;getting prev cmds for up arrow key-done
-    ;getting prev cmds for up arrow key 
+    ;getting prev cmds for down arrow key 
 
 
 ;add feature to only alllow terminal to end with the exit command
