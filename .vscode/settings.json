@@ -1,0 +1,6 @@
+{
+  "files.associations": {
+    "*.asm": "wat",
+    "sdl.h": "c"
+  }
+}
