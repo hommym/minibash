@@ -4,19 +4,25 @@ Mini-Bash is a simple shell implemented in assembly language, demonstrating fund
 
 ## How to Run
 
-To run Mini-Bash, you need to assemble and link the `main.asm` file. Assuming you have `nasm` (Netwide Assembler) and `ld` (GNU Linker) installed, follow these steps:
+To run Mini-Bash, you need to compile the C source files, assemble the assembly files, and then link them together. Follow these steps:
 
-1.  **Assemble the source code:**
+1.  **Compile C source files:**
     ```bash
-    nasm -f elf64 main.asm -o main.o
+    gcc -c ui-and-events/eventLoop.c -o eventLoop.o $(pkg-config --cflags sdl2)
     ```
-2.  **Link the object file:**
+2.  **Assemble assembly files:**
     ```bash
-    ld main.o -o main
+    yasm -f elf64 -g dwarf2 -l main.lst -o minibash.o minibash.asm
     ```
-3.  **Execute Mini-Bash:**
+3.  **Link the object files:**
     ```bash
-    ./main
+    # This step will require knowing all object files and external libraries.
+    # For now, assuming a simple link, but this might need adjustment.
+    ld minibash.o eventLoop.o -o minibash -lSDL2 -lc
+    ```
+4.  **Execute Mini-Bash:**
+    ```bash
+    ./minibash
     ```
 
 ## Main Features
