@@ -5,12 +5,14 @@
 
     section .data
 title db "Mini-Bash",0   
-  
+pathToFont db "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",0  
 
 
 
     section .bss
 windows  resq 1
+render   resq 1
+font     resq 1
 keyStore    resb 1   ; section for storing keys(alpa-numeric) entered from the keyboard
 
 
@@ -28,7 +30,12 @@ keyStore    resb 1   ; section for storing keys(alpa-numeric) entered from the k
     extern SDL_Event
     extern SDL_PollEvent
     extern eventLoop
-    global main
+    extern SDL_CreateRenderer
+    extern TTF_Init
+    extern SDL_DestroyRenderer
+    extern TTF_OpenFont
+    extern TTF_CloseFont
+    global main,render,font
     
 
 
@@ -41,27 +48,59 @@ mov rbp,rsp
 ;initailising sdl
 mov rdi,0x20 ; flag for video sub system
 call SDL_InitSubSystem
+cmp rax,0
+jnz end
 
-;creat windows for terminal 
-lea rdi,[title]
+;initialising the font lib
+call TTF_Init
+cmp rax ,-1
+jz end
+
+
+windowCreation:
+lea rdi,[title] 
 mov rsi,100
 mov rdx,100
 mov rcx,500
 mov r8,500
 mov r9,0x20  ; flag for making the window resizeable
-call SDL_CreateWindow
+call SDL_CreateWindow;creat windows for terminal 
 cmp rax,0
 jz end
-
-saveCreatedWindows:
+;saving the pointer to the window which was just created
 mov qword[windows],rax
+
+renderCreation:
+mov rdi,qword[windows]
+mov rsi,-1
+mov rdx,0x2 ;render flag
+or rdx,0x4  ;render flags
+call SDL_CreateRenderer
+cmp rax,0
+jz releaseResources
+mov qword[render],rax
+
+fontOpening:
+lea rdi,[pathToFont]
+mov rsi,24
+call TTF_OpenFont
+cmp rax,0
+jz releaseResources
+mov qword[font],rax
+
+
 call eventLoop
 
+releaseResources:
+mov rdi,qword[font]
+call TTF_CloseFont
+mov rdi,qword[render]
+call SDL_DestroyRenderer
 mov rdi,qword[windows]
 call SDL_DestroyWindow
+call SDL_Quit
 
 end:
-call SDL_Quit
 pop rbp
 xor rax,rax
 ret
