@@ -1,4 +1,5 @@
 #include <SDL.h>
+#include "output.h"
 
 static int eventLoopState=1;
 static SDL_Event event;
@@ -13,8 +14,9 @@ while(eventLoopState){
        switch (event.type)
        {
        case SDL_TEXTINPUT:
-            printf("Text input: %s\n", event.text.text);
+            // printf("Text input: %s\n", event.text.text);
             // for processing alpha-numeric inputs from the keyboard
+            showChar(event.text.text);
         break;
 
         case SDL_QUIT:

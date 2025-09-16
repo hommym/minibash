@@ -7,63 +7,111 @@
      7                                 [section .data]
      8 00000000 4D696E692D42617368-    title db "Mini-Bash",0
      9 00000000 00                 
-    10                                 
-    11                                 
-    12                                 
-    13                                 
-    14                                 [section .bss]
-    15 00000000 <gap>                  windows resq 1
-    16 00000008 <gap>                  keyStore resb 1
+    10 0000000A 2F7573722F73686172-    pathToFont db "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",0
+    11 0000000A 652F666F6E74732F74-
+    12 0000000A 727565747970652F64-
+    13 0000000A 656A6176752F44656A-
+    14 0000000A 61567553616E732E74-
+    15 0000000A 746600             
+    16                                 
     17                                 
     18                                 
-    19                                 
-    20                                 
-    21                                 
-    22                                 
-    23                                 [section .text]
-    24                                 [extern printf]
-    25                                 [extern SDL_InitSubSystem]
-    26                                 [extern SDL_Quit]
-    27                                 [extern SDL_CreateWindow]
-    28                                 [extern SDL_DestroyWindow]
-    29                                 [extern SDL_Delay]
-    30                                 [extern SDL_Event]
-    31                                 [extern SDL_PollEvent]
-    32                                 [extern eventLoop]
-    33                                 [global main]
-    34                                 
-    35                                 
-    36                                 
-    37                                 
-    38                                 
-    39                                 main:
-    40 00000000 55                     push rbp
-    41 00000001 4889E5                 mov rbp,rsp
-    42                                 
-    43                                 
-    44 00000004 48C7C720000000         mov rdi,0x20
-    45 0000000B E8(F6FFFFFF)           call SDL_InitSubSystem
-    46                                 
-    47                                 
-    48 00000010 488D3C25[00000000]     lea rdi,[title]
-    49 00000018 48C7C664000000         mov rsi,100
-    50 0000001F 48C7C264000000         mov rdx,100
-    51 00000026 48C7C1F4010000         mov rcx,500
-    52 0000002D 49C7C0F4010000         mov r8,500
-    53 00000034 49C7C120000000         mov r9,0x20
-    54 0000003B E8(F6FFFFFF)           call SDL_CreateWindow
-    55 00000040 4883F800               cmp rax,0
-    56 00000044 7418                   jz end
-    57                                 
-    58                                 saveCreatedWindows:
-    59 00000046 48890425[00000000]     mov qword[windows],rax
-    60 0000004E E8(F6FFFFFF)           call eventLoop
-    61                                 
-    62 00000053 488B3C25[00000000]     mov rdi,qword[windows]
-    63 0000005B E8(F6FFFFFF)           call SDL_DestroyWindow
+    19                                 [section .bss]
+    20 00000000 <gap>                  windows resq 1
+    21 00000008 <gap>                  render resq 1
+    22 00000010 <gap>                  font resq 1
+    23 00000018 <gap>                  keyStore resb 1
+    24                                 
+    25                                 
+    26                                 
+    27                                 
+    28                                 
+    29                                 
+    30                                 [section .text]
+    31                                 [extern printf]
+    32                                 [extern SDL_InitSubSystem]
+    33                                 [extern SDL_Quit]
+    34                                 [extern SDL_CreateWindow]
+    35                                 [extern SDL_DestroyWindow]
+    36                                 [extern SDL_Delay]
+    37                                 [extern SDL_Event]
+    38                                 [extern SDL_PollEvent]
+    39                                 [extern eventLoop]
+    40                                 [extern SDL_CreateRenderer]
+    41                                 [extern TTF_Init]
+    42                                 [extern SDL_DestroyRenderer]
+    43                                 [extern TTF_OpenFont]
+    44                                 [extern TTF_CloseFont]
+    45                                 [global main]
+    46                                 %line 38+0 minibash.asm
+    47                                 [global render]
+    48                                 [global font]
+    49                                 %line 39+1 minibash.asm
+    50                                 
+    51                                 
+    52                                 
+    53                                 
+    54                                 
+    55                                 main:
+    56 00000000 55                     push rbp
+    57 00000001 4889E5                 mov rbp,rsp
+    58                                 
+    59                                 
+    60 00000004 48C7C720000000         mov rdi,0x20
+    61 0000000B E8(F6FFFFFF)           call SDL_InitSubSystem
+    62 00000010 4883F800               cmp rax,0
+    63 00000014 0F85CB000000           jnz end
     64                                 
-    65                                 end:
-    66 00000060 E8(F6FFFFFF)           call SDL_Quit
-    67 00000065 5D                     pop rbp
-    68 00000066 4831C0                 xor rax,rax
-    69 00000069 C3                     ret
+    65                                 
+    66 0000001A E8(F6FFFFFF)           call TTF_Init
+    67 0000001F 4883F8FF               cmp rax ,-1
+    68 00000023 0F84BC000000           jz end
+    69                                 
+    70                                 
+    71                                 windowCreation:
+    72 00000029 488D3C25[00000000]     lea rdi,[title]
+    73 00000031 48C7C664000000         mov rsi,100
+    74 00000038 48C7C264000000         mov rdx,100
+    75 0000003F 48C7C1F4010000         mov rcx,500
+    76 00000046 49C7C0F4010000         mov r8,500
+    77 0000004D 49C7C120000000         mov r9,0x20
+    78 00000054 E8(F6FFFFFF)           call SDL_CreateWindow
+    79 00000059 4883F800               cmp rax,0
+    80 0000005D 0F8482000000           jz end
+    81                                 
+    82 00000063 48890425[00000000]     mov qword[windows],rax
+    83                                 
+    84                                 renderCreation:
+    85 0000006B 488B3C25[00000000]     mov rdi,qword[windows]
+    86 00000073 48C7C6FFFFFFFF         mov rsi,-1
+    87 0000007A 48C7C202000000         mov rdx,0x2
+    88 00000081 4883CA04               or rdx,0x4
+    89 00000085 E8(F6FFFFFF)           call SDL_CreateRenderer
+    90 0000008A 4883F800               cmp rax,0
+    91 0000008E 742D                   jz releaseResources
+    92 00000090 48890425[00000000]     mov qword[render],rax
+    93                                 
+    94                                 fontOpening:
+    95 00000098 488D3C25[00000000]     lea rdi,[pathToFont]
+    96 000000A0 48C7C618000000         mov rsi,24
+    97 000000A7 E8(F6FFFFFF)           call TTF_OpenFont
+    98 000000AC 4883F800               cmp rax,0
+    99 000000B0 740B                   jz releaseResources
+   100 000000B2 48890425[00000000]     mov qword[font],rax
+   101                                 
+   102                                 
+   103 000000BA E8(F6FFFFFF)           call eventLoop
+   104                                 
+   105                                 releaseResources:
+   106 000000BF 488B3C25[00000000]     mov rdi,qword[font]
+   107 000000C7 E8(F6FFFFFF)           call TTF_CloseFont
+   108 000000CC 488B3C25[00000000]     mov rdi,qword[render]
+   109 000000D4 E8(F6FFFFFF)           call SDL_DestroyRenderer
+   110 000000D9 488B3C25[00000000]     mov rdi,qword[windows]
+   111 000000E1 E8(F6FFFFFF)           call SDL_DestroyWindow
+   112 000000E6 E8(F6FFFFFF)           call SDL_Quit
+   113                                 
+   114                                 end:
+   115 000000EB 5D                     pop rbp
+   116 000000EC 4831C0                 xor rax,rax
+   117 000000EF C3                     ret
