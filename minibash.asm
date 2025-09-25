@@ -35,7 +35,7 @@ keyStore    resb 1   ; section for storing keys(alpa-numeric) entered from the k
     extern SDL_DestroyRenderer
     extern TTF_OpenFont
     extern TTF_CloseFont
-    global main,render,font
+    global main,render,font,windows
     
 
 
@@ -64,6 +64,7 @@ mov rdx,100
 mov rcx,500
 mov r8,500
 mov r9,0x20  ; flag for making the window resizeable
+or r9,0x2000 ;flag for  high-DPI mode
 call SDL_CreateWindow;creat windows for terminal 
 cmp rax,0
 jz end
@@ -82,7 +83,7 @@ mov qword[render],rax
 
 fontOpening:
 lea rdi,[pathToFont]
-mov rsi,24
+mov rsi,18
 call TTF_OpenFont
 cmp rax,0
 jz releaseResources
