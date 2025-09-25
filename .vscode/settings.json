@@ -1,6 +1,7 @@
 {
   "files.associations": {
     "*.asm": "wat",
-    "sdl.h": "c"
+    "sdl.h": "c",
+    "output.h": "c"
   }
 }

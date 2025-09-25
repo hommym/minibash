@@ -14,6 +14,8 @@ do
 
         elif [ $file == "output.c" ]; then 
               gcc -c $file -o ../build/output.o $(pkg-config --cflags sdl2) -lSDL2_ttf 
+        elif [ $file == "charProc.c" ]; then 
+              gcc -c $file -o ../build/charProc.o $(pkg-config --cflags sdl2) -lSDL2_ttf     
         fi
 
 done
@@ -39,7 +41,7 @@ yasm -f elf64 -g dwarf2 -l build/main.lst -o build/minibash.o minibash.asm
 cd build
 
 #link everything into a single exe
-gcc minibash.o eventLoop.o output.o -no-pie -o minibash $(sdl2-config --libs) $(pkg-config --libs SDL2_ttf)     
+gcc minibash.o eventLoop.o output.o charProc.o -no-pie -o minibash $(sdl2-config --libs) $(pkg-config --libs SDL2_ttf)     
 
 
 # going back root dir 
