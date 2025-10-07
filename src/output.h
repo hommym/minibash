@@ -7,6 +7,7 @@
 extern SDL_Renderer *render;
 extern TTF_Font *font;
 extern SDL_Window *windows;
-void showChar(char *addressOfData);
+void renderChar(char *addressOfData);
+
 
 #endif

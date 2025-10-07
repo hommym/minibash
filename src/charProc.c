@@ -3,11 +3,11 @@
 
 
 
-static char userInputs[1000];
-static int stP=0;
 
+int stP=0;
+char userInputs[1000];
 
-void charProcessor(char *addressOfData,int ecsFlag){
+void keyBoardInputHandler(char *addressOfData,int ecsFlag){
 
     //check if char is an escape char or alpha-numeric
     
@@ -16,7 +16,7 @@ void charProcessor(char *addressOfData,int ecsFlag){
     }
     else{
         userInputs[stP]=addressOfData[0];
-        showChar(userInputs+stP);
+        renderChar(userInputs+stP);
         ++stP;       
     }
 

@@ -3,6 +3,9 @@
 #ifndef CHARPROC
 #define CHARPROC
 
-void charProcessor(char *addressOfData,int ecsFlag);
+extern char userInputs[1000];
+extern int stP;
+void keyBoardInputHandler(char *addressOfData,int ecsFlag);
+
 
 #endif

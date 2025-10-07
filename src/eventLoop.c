@@ -1,6 +1,9 @@
 #include <SDL.h>
 #include "output.h"
 #include "charProc.h"
+#include "windowProc.h"
+
+
 
 static int eventLoopState=1;
 static SDL_Event event;
@@ -15,9 +18,13 @@ while(eventLoopState){
        switch (event.type)
        {
        case SDL_TEXTINPUT:
-            // printf("Text input: %s\n", event.text.text);
             // for processing alpha-numeric inputs from the keyboard
-            charProcessor(event.text.text,0);
+            keyBoardInputHandler(event.text.text,0);
+        break;
+
+        case SDL_WINDOWEVENT:
+            // for processing win size change            
+           windowResizeHandler(event.window);
         break;
 
         case SDL_QUIT:
