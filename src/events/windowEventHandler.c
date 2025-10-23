@@ -2,8 +2,10 @@
 #include "windowEventHandler.h"
 #include "keyboardEventHandler.h"
 #include "../ui/renderer.h"
+#include "../ui/cursor.h"
 
 
+static int isWinPresent=0;
 void windowResizeHandler(SDL_WindowEvent winEvent){
   
     switch (winEvent.event)
@@ -11,6 +13,11 @@ void windowResizeHandler(SDL_WindowEvent winEvent){
     case SDL_WINDOWEVENT_RESIZED:
         printf("%s\n","windows size changed");
         break;
+
+    case SDL_WINDOWEVENT_SHOWN:
+    if(isWinPresent)displayCursor();
+    else isWinPresent=1;
+    break;    
     
     default:
         break;
