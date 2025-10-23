@@ -1,7 +1,7 @@
 #include <SDL.h>
-#include "output.h"
-#include "charProc.h"
-#include "windowProc.h"
+#include "../ui/renderer.h"
+#include "keyboardEventHandler.h"
+#include "windowEventHandler.h"
 
 
 

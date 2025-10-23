@@ -1,7 +1,7 @@
 
 
-#ifndef CHARPROC
-#define CHARPROC
+#ifndef TextEventHandler
+#define TextEventHandler
 
 extern char userInputs[1000];
 extern int stP;

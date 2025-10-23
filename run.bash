@@ -3,27 +3,41 @@
 
 
 #cd into src
-cd src
+cd src/events
 
 # compile all c file in src to objcet files in build
 
 for file in $(ls *.c)
 do
         if [ $file == "eventLoop.c" ]; then 
-            gcc -c $file -o ../build/eventLoop.o $(pkg-config --cflags sdl2) 
+            gcc -c $file -o ../../build/eventLoop.o $(pkg-config --cflags sdl2) 
 
-        elif [ $file == "output.c" ]; then 
-              gcc -c $file -o ../build/output.o $(pkg-config --cflags sdl2) -lSDL2_ttf 
-        elif [ $file == "charProc.c" ]; then 
-              gcc -c $file -o ../build/charProc.o $(pkg-config --cflags sdl2) -lSDL2_ttf    
-        elif [ $file == "windowProc.c" ]; then 
-              gcc -c $file -o ../build/windowProc.o $(pkg-config --cflags sdl2) -lSDL2_ttf         
+        elif [ $file == "keyboardEventHandler.c" ]; then 
+              gcc -c $file -o ../../build/keyboardEventHandler.o $(pkg-config --cflags sdl2) -lSDL2_ttf    
+        elif [ $file == "windowEventHandler.c" ]; then 
+              gcc -c $file -o ../../build/windowEventHandler.o $(pkg-config --cflags sdl2) -lSDL2_ttf         
         fi
 
 done
 
+
+#going back to src
+cd ..
+
+cd ui
+
+for file in $(ls *.c)
+do
+      if [ $file == "renderer.c" ]; then 
+                  gcc -c $file -o ../../build/renderer.o $(pkg-config --cflags sdl2) -lSDL2_ttf 
+      fi
+
+done
+
+
+
 # going back root dir 
-cd .. 
+cd ../.. 
 
 #cd into utils
 cd utils

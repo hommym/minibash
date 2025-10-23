@@ -1,6 +1,6 @@
 #include <SDL_ttf.h>
 #include <SDL.h>
-#include "output.h"
+#include "renderer.h"
 
 
 static int x=0;

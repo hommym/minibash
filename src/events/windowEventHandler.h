@@ -1,7 +1,7 @@
 #include <SDL.h>
 
-#ifndef WINPROC
-#define WINPROC
+#ifndef WindowEventHandler
+#define WindowEventHandler
 
 void windowResizeHandler(SDL_WindowEvent winEvent);
 extern SDL_Renderer *render;

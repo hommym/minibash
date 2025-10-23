@@ -1,7 +1,7 @@
 #include <SDL.h>
-#include "windowProc.h"
-#include "charProc.h"
-#include "output.h"
+#include "windowEventHandler.h"
+#include "keyboardEventHandler.h"
+#include "../ui/renderer.h"
 
 
 void windowResizeHandler(SDL_WindowEvent winEvent){

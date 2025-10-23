@@ -1,5 +1,5 @@
-#include "output.h"
-#include "charProc.h"
+#include "../ui/renderer.h"
+#include "keyboardEventHandler.h"
 
 
 
