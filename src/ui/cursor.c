@@ -17,13 +17,19 @@ static int yPos=0;
 static SDL_Rect cursor={0,0,7,25};
 
 
-
-void displayCursor(){
-    SDL_SetRenderDrawColor(render,255,255,255,255);
-    SDL_RenderFillRect(render,&cursor);
-    SDL_RenderPresent(render);
+void removeCursor(){
+SDL_SetRenderDrawColor(render,0,0,0,0);
+SDL_RenderFillRect(render,&cursor);
+SDL_RenderPresent(render); 
 }
-
+void displayCursor(){
+cursor.x=xPos;
+cursor.y=yPos;    
+SDL_SetRenderDrawColor(render,255,255,255,255);
+SDL_RenderFillRect(render,&cursor);
+SDL_RenderPresent(render);
+}
+ 
 
 int getCursorXPos(){
     return xPos;
