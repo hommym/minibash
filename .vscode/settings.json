@@ -4,6 +4,7 @@
     "sdl.h": "c",
     "output.h": "c",
     "windowproc.h": "c",
-    "charproc.h": "c"
+    "charproc.h": "c",
+    "renderer.h": "c"
   }
 }
