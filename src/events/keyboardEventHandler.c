@@ -5,9 +5,15 @@
 
 
 
-static PrintableChar inputs[100000];
+static PrintableChar inputs[100000]={};
 static int pcTracker=0;
-static SDL_Color white = {255, 255, 255, 255};
+static SDL_Color white = {255, 255, 255, 0};
+
+
+void updateScreen(){
+renderChar(inputs,pcTracker);
+displayCursor();
+}
 
 static void charProcessor(char data){
 PrintableChar printable={};
@@ -26,7 +32,6 @@ printable.rect = (SDL_Rect){getCursorXPos(),getCursorYPos(),printableW,printable
 int nextXCusorPos=getCursorXPos()+printableW;
 
 SDL_GetWindowSizeInPixels(windows,&winW,&winH);
-removeCursor();
 if(nextXCusorPos>=winW){
 changeCursorXPos(0);
 changeCursorYPos(getCursorYPos()+printableH);
@@ -34,13 +39,10 @@ changeCursorYPos(getCursorYPos()+printableH);
 else changeCursorXPos(nextXCusorPos);
 
 // display character on screen
-renderChar(printable);
-displayCursor();
-
 inputs[pcTracker]=printable;
+updateScreen();
 pcTracker++;
 }
-
 
 
 void keyBoardInputHandler(char *addressOfData,int ecsFlag){

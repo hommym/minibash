@@ -8,7 +8,7 @@
 extern SDL_Renderer *render;
 extern TTF_Font *font;
 extern SDL_Window *windows;
-void renderChar(PrintableChar data);
+void renderChar(PrintableChar *allData,int noItems);
 
 
 #endif

@@ -13,9 +13,12 @@
 
 
 
-void renderChar(PrintableChar data){
-SDL_SetRenderDrawColor(render, 0, 0, 0,255); // black background
+void renderChar(PrintableChar *allData,int noItems){
+SDL_SetRenderDrawColor(render, 0, 0, 0,0); // black background
 SDL_RenderClear(render);
-SDL_RenderCopy(render, data.texture, NULL, &data.rect);
-SDL_RenderPresent(render);  
+
+for(int i=0;i<=noItems;i++){
+SDL_RenderCopy(render, (allData[i]).texture, NULL, &(allData[i]).rect);
+}
+
 }
