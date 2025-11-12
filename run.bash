@@ -46,7 +46,13 @@ cd ../..
 #cd into utils
 cd utils
 
-#compile all asm files in this dir(N/A)
+#compile all asm files in this dir
+for file in $(ls *.asm)
+do
+      if [ $file == "cwd.asm" ]; then       
+            yasm -f elf64 -g dwarf2 -l ../build/cwd.lst -o ../build/cwd.o cwd.asm 
+      fi
+done
 
 
 
@@ -61,7 +67,7 @@ yasm -f elf64 -g dwarf2 -l build/main.lst -o build/minibash.o minibash.asm
 cd build
 
 #link everything into a single exe
-gcc minibash.o eventLoop.o renderer.o keyboardEventHandler.o windowEventHandler.o cursor.o -no-pie -o minibash $(sdl2-config --libs) $(pkg-config --libs SDL2_ttf)     
+gcc minibash.o eventLoop.o renderer.o keyboardEventHandler.o windowEventHandler.o cursor.o cwd.o -no-pie -o minibash $(sdl2-config --libs) $(pkg-config --libs SDL2_ttf)     
 
 
 # going back root dir 

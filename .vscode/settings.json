@@ -1,6 +1,6 @@
 {
   "files.associations": {
-    "*.asm": "wat",
+    "*.asm": "nasm",
     "sdl.h": "c",
     "output.h": "c",
     "windowproc.h": "c",
