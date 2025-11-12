@@ -35,6 +35,7 @@ keyStore    resb 1   ; section for storing keys(alpa-numeric) entered from the k
     extern SDL_DestroyRenderer
     extern TTF_OpenFont
     extern TTF_CloseFont
+    extern loadCwd
     global main,render,font,windows
     
 
@@ -44,6 +45,9 @@ keyStore    resb 1   ; section for storing keys(alpa-numeric) entered from the k
 main:
 push rbp
 mov rbp,rsp
+
+;loading the cwd
+call loadCwd
 
 ;initailising sdl
 mov rdi,0x20 ; flag for video sub system
@@ -61,8 +65,8 @@ windowCreation:
 lea rdi,[title] 
 mov rsi,100
 mov rdx,100
-mov rcx,500
-mov r8,500
+mov rcx,1000
+mov r8,700
 mov r9,0x20  ; flag for making the window resizeable
 or r9,0x2000 ;flag for  high-DPI mode
 call SDL_CreateWindow;creat windows for terminal 
@@ -88,6 +92,7 @@ call TTF_OpenFont
 cmp rax,0
 jz releaseResources
 mov qword[font],rax
+
 
 
 call eventLoop
