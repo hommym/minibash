@@ -15,7 +15,10 @@ void windowResizeHandler(SDL_WindowEvent winEvent){
         break;
 
     case SDL_WINDOWEVENT_SHOWN:
-    if(isWinPresent)displayCursor();
+    if(isWinPresent){
+        displayCursor();
+        displayCWD();
+    }
     else isWinPresent=1;
     break;    
     

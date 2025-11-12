@@ -3,7 +3,7 @@
 #ifndef Cursor
 #define Cursor
 
-void removeCursor();
+
 void displayCursor();
 int getCursorXPos();
 int getCursorYPos();

@@ -15,7 +15,10 @@ renderChar(inputs,pcTracker);
 displayCursor();
 }
 
-static void charProcessor(char data){
+
+
+
+static void charProcessor(char data,int cwdFlag){
 PrintableChar printable={};
 SDL_Surface *surface = TTF_RenderText_Solid(font, &data, white);
 
@@ -40,8 +43,21 @@ else changeCursorXPos(nextXCusorPos);
 
 // display character on screen
 inputs[pcTracker]=printable;
-updateScreen();
+if(cwdFlag==0)updateScreen();
 pcTracker++;
+}
+
+void displayCWD(){
+charProcessor(' ',1);    
+char *cwd= getCwd();
+char item=cwd[pcTracker-1];
+while(item!='\0'){
+    charProcessor(item,1);
+    item=cwd[pcTracker-1];
+}
+charProcessor('@',1);
+charProcessor(' ',1);
+updateScreen();
 }
 
 
@@ -53,7 +69,7 @@ void keyBoardInputHandler(char *addressOfData,int ecsFlag){
         // have not imp
     }
     else{
-       charProcessor(addressOfData[0]);      
+       charProcessor(addressOfData[0],0);      
     }
 
 
