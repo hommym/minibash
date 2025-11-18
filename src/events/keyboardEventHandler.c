@@ -33,15 +33,23 @@ int printableH=0;
 int winW=0;
 int winH=0;
 SDL_QueryTexture(texture, NULL, NULL, &printableW, &printableH);
-printable.rect = (SDL_Rect){getCursorXPos(),getCursorYPos(),printableW,printableH};
-int nextXCusorPos=getCursorXPos()+printableW;
-
 SDL_GetWindowSizeInPixels(windows,&winW,&winH);
-if(nextXCusorPos>=winW){
+
+
+if(printableW>(winW-getCursorXPos())){
+changeCursorXPos(0);
+changeCursorYPos(getCursorYPos()+printableH);
+printable.rect = (SDL_Rect){getCursorXPos(),getCursorYPos(),printableW,printableH};
+changeCursorXPos(getCursorXPos()+printableW);
+}
+else if(printableW==(winW-getCursorXPos())){
 changeCursorXPos(0);
 changeCursorYPos(getCursorYPos()+printableH);
 }
-else changeCursorXPos(nextXCusorPos);
+else {
+printable.rect = (SDL_Rect){getCursorXPos(),getCursorYPos(),printableW,printableH};
+changeCursorXPos(getCursorXPos()+printableW);
+}
 
 inputs[pcTracker]=printable;
 pcTracker++;
