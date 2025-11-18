@@ -11,6 +11,7 @@ static SDL_Color white = {255, 255, 255, 0};
 
 
 void updateScreen(){
+// display characters on screen    
 renderChar(inputs,pcTracker);
 displayCursor();
 }
@@ -19,8 +20,9 @@ displayCursor();
 
 
 static void charProcessor(char data,int cwdFlag){
+const char dataToUse[2]={data,'\0'};    
 PrintableChar printable={};
-SDL_Surface *surface = TTF_RenderText_Solid(font, &data, white);
+SDL_Surface *surface = TTF_RenderText_Solid(font, &dataToUse[0], white);
 
 SDL_Texture *texture = SDL_CreateTextureFromSurface(render, surface);
 SDL_FreeSurface(surface); // we don’t need the surface anymore
@@ -41,19 +43,20 @@ changeCursorYPos(getCursorYPos()+printableH);
 }
 else changeCursorXPos(nextXCusorPos);
 
-// display character on screen
 inputs[pcTracker]=printable;
-if(cwdFlag==0)updateScreen();
 pcTracker++;
+if(cwdFlag==0)updateScreen();
 }
 
 void displayCWD(){
 charProcessor(' ',1);    
 char *cwd= getCwd();
-char item=cwd[pcTracker-1];
+int itemTracker=0;
+char item=cwd[itemTracker];
 while(item!='\0'){
     charProcessor(item,1);
-    item=cwd[pcTracker-1];
+    itemTracker++;
+    item=cwd[itemTracker];
 }
 charProcessor('@',1);
 charProcessor(' ',1);
@@ -69,7 +72,7 @@ void keyBoardInputHandler(char *addressOfData,int ecsFlag){
         // have not imp
     }
     else{
-       charProcessor(addressOfData[0],0);      
+       charProcessor(addressOfData[0],0);
     }
 
 
