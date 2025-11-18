@@ -15,11 +15,11 @@ void windowResizeHandler(SDL_WindowEvent winEvent){
         break;
 
     case SDL_WINDOWEVENT_SHOWN:
-    if(isWinPresent){
-        displayCursor();
+    if(isWinPresent==0){
+        printf("%s\n","windows is shown");
         displayCWD();
+        isWinPresent=1;
     }
-    else isWinPresent=1;
     break;    
     
     default:
