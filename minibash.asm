@@ -6,14 +6,14 @@
     section .data
 title db "Mini-Bash",0   
 pathToFont db "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",0  
-
+ptPath    db "/dev/ptmx",0
 
 
     section .bss
-windows  resq 1
-render   resq 1
-font     resq 1
-keyStore    resb 1   ; section for storing keys(alpa-numeric) entered from the keyboard
+windows     resq 1
+render      resq 1
+font        resq 1
+masterFd    resd 1  
 
 
 
@@ -36,6 +36,9 @@ keyStore    resb 1   ; section for storing keys(alpa-numeric) entered from the k
     extern TTF_OpenFont
     extern TTF_CloseFont
     extern loadCwd
+    extern posix_openpt
+    extern unlockpt
+    extern grantpt
     global main,render,font,windows
     
 
@@ -60,6 +63,14 @@ call TTF_Init
 cmp rax ,-1
 jz end
 
+
+;creating master fd and prep other needed details
+mov rdi,0x241 
+call posix_openpt
+mov dword[masterFd],eax
+call grantpt
+mov eax,dword[masterFd]
+call unlockpt
 
 windowCreation:
 lea rdi,[title] 
