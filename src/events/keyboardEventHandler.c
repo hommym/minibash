@@ -71,13 +71,42 @@ charProcessor(' ',1);
 updateScreen();
 }
 
+void ecsCharProcess(SDL_Keysym *key){
+ SDL_Keysym data=*key;
+ 
+ 
+ switch (data.sym)
+ {
+case  SDLK_RETURN:
+    printf("%s\n","Enter Key");
+    break;
+case  SDLK_BACKSPACE:
+    printf("%s\n","BackSpace Key");
+    break;  
+case  SDLK_RIGHT:
+    printf("%s\n","Right Arrow Key");
+    break; 
+case  SDLK_LEFT:
+    printf("%s\n","Left Arrow Key");
+    break;   
+    
+case  SDLK_DOWN:
+    printf("%s\n","Down Arrow Key");
+    break;       
+case  SDLK_UP:
+    printf("%s\n","Up Arrow Key");
+    break;       
+ }
+    
+}
 
-void keyBoardInputHandler(char *addressOfData,int ecsFlag){
+
+void keyBoardInputHandler(char *addressOfData,int ecsFlag,SDL_Keysym *key){
 
     //check if char is an escape char or alpha-numeric
     
     if(ecsFlag){
-        // have not imp
+        ecsCharProcess(key);
     }
     else{
        charProcessor(addressOfData[0],0);
