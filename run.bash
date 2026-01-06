@@ -51,6 +51,11 @@ for file in $(ls *.asm)
 do
       if [ $file == "cwd.asm" ]; then       
             yasm -f elf64 -g dwarf2 -l ../build/cwd.lst -o ../build/cwd.o cwd.asm 
+      elif [ $file == "cmd.asm" ]; then       
+            yasm -f elf64 -g dwarf2 -l ../build/cmd.lst -o ../build/cmd.o cmd.asm   
+
+      elif [ $file == "syscalls.asm" ]; then       
+            yasm -f elf64 -g dwarf2 -l ../build/syscalls.lst -o ../build/syscalls.o syscalls.asm           
       fi
 done
 
@@ -67,7 +72,7 @@ yasm -f elf64 -g dwarf2 -l build/main.lst -o build/minibash.o minibash.asm
 cd build
 
 #link everything into a single exe
-gcc minibash.o eventLoop.o renderer.o keyboardEventHandler.o windowEventHandler.o cursor.o cwd.o -no-pie -o minibash $(sdl2-config --libs) $(pkg-config --libs SDL2_ttf)     
+gcc minibash.o cwd.o cmd.o syscalls.o eventLoop.o renderer.o keyboardEventHandler.o windowEventHandler.o cursor.o -no-pie -o minibash $(sdl2-config --libs) $(pkg-config --libs SDL2_ttf)     
 
 
 # going back root dir 

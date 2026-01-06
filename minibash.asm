@@ -14,6 +14,7 @@ windows     resq 1
 render      resq 1
 font        resq 1
 masterFd    resd 1  
+slaveFd     resd 1
 
 
 
@@ -39,7 +40,11 @@ masterFd    resd 1
     extern posix_openpt
     extern unlockpt
     extern grantpt
-    global main,render,font,windows
+    extern ptsname
+    extern open
+    extern O_RDWR
+    extern O_NOCTTY
+    global main,render,font,windows,masterFd,slaveFd
     
 
 
@@ -65,12 +70,25 @@ jz end
 
 
 ;creating master fd and prep other needed details
-mov rdi,0x241 
+mov rdi,0x0102 
 call posix_openpt
 mov dword[masterFd],eax
+xor rdi,rdi
+mov edi,eax
 call grantpt
-mov eax,dword[masterFd]
+xor rdi,rdi
+mov edi,dword[masterFd]
 call unlockpt
+
+; creating slaveFd
+xor rdi,rdi
+mov edi,dword[masterFd]
+call ptsname
+mov rdi,rax
+mov rsi,0x0102
+call open
+mov dword[slaveFd],eax
+
 
 windowCreation:
 lea rdi,[title] 

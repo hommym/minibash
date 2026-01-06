@@ -1,15 +1,21 @@
-#include <SDL.h>
-#include "../ui/renderer.h"
-#include "keyboardEventHandler.h"
-#include "windowEventHandler.h"
+#include "eventLoop.h"
 
 
 
-static int eventLoopState=1;
+// eventLoopState=1;
 static SDL_Event event;
 
 
 void eventLoop(){
+pthread_t tid;
+pthread_attr_t attr;
+pthread_attr_init(&attr);
+pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+int isTCreated =pthread_create(&tid,NULL,outputProcess,NULL);
+if(isTCreated!=0){
+printf("%s\n","An error occured during thread creation");
+fprintf(stderr, "pthread_create: %s\n", strerror(isTCreated));
+}
 
 while(eventLoopState){
 
@@ -33,13 +39,13 @@ while(eventLoopState){
         case SDL_QUIT:
             printf("%s","\nclosing app\n");
             eventLoopState=0;
-        break;
+            pthread_attr_destroy(&attr);
+            break;
        }
     }
     
 
 
 }
-
 
 }

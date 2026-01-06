@@ -7,6 +7,7 @@
 
 static PrintableChar inputs[100000]={};
 static int pcTracker=0;
+static int cUserInputTracker=0;
 static SDL_Color white = {255, 255, 255, 0};
 
 
@@ -54,6 +55,17 @@ changeCursorXPos(getCursorXPos()+printableW);
 inputs[pcTracker]=printable;
 pcTracker++;
 if(cwdFlag==0)updateScreen();
+}
+
+
+void *outputProcess(void *args){
+    char data;
+    while(eventLoopState==1){
+        printf("%s\n","Working");
+        readSysCall(masterFd,&data);
+        charProcessor(data,0); 
+    }
+
 }
 
 void displayCWD(){
@@ -104,12 +116,15 @@ case  SDLK_UP:
 void keyBoardInputHandler(char *addressOfData,int ecsFlag,SDL_Keysym *key){
 
     //check if char is an escape char or alpha-numeric
-    
     if(ecsFlag){
         ecsCharProcess(key);
     }
     else{
-       charProcessor(addressOfData[0],0);
+       int sucess = writeSysCall(masterFd,addressOfData);
+       if(sucess!=0) fprintf(stderr, "write syscall error: %s\n", strerror(sucess));
+       printf("%i",slaveFd);
+       currentUserInput[cUserInputTracker]=addressOfData[0];
+       cUserInputTracker++;
     }
 
 
